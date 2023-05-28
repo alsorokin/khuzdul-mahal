@@ -7,13 +7,17 @@ namespace Gaze
         internal const char GemSymbol = '@';
         internal static void Render(Game game)
         {
-            for (int i = 0; i < Game.FieldWidth; i++)
+            ConsoleColor oldColor = Console.BackgroundColor;
+            var clusters = game.GetClusters();
+            for (int y = 0; y < Game.FieldHeight; y++)
             {
-                for (int j = 0; j < Game.FieldHeight; j++)
+                for (int x = 0; x < Game.FieldWidth; x++)
                 {
-                    RenderGem(game.GetGemKindAt(i, j));
+                    Console.BackgroundColor = clusters.Any(c => c.Points.Any(p => p.Item1 == x && p.Item2 == y)) ? ConsoleColor.DarkGray : ConsoleColor.Black;
+                    RenderGem(game.GetGemKindAt(x, y));
                     Console.Write(' ');
                 }
+                Console.BackgroundColor = oldColor;
                 Console.WriteLine();
             }
         }
