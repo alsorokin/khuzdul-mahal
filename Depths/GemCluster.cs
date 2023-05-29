@@ -19,6 +19,11 @@
         L,
 
         /// <summary>
+        /// Four in a row, crossed by another line of three or four
+        /// </summary>
+        LargeL,
+
+        /// <summary>
         /// Five in a row, forming a hypercube
         /// </summary>
         Hyper

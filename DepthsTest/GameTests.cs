@@ -12,10 +12,17 @@ namespace DepthsTest
             Assert.ThrowsException<ArgumentOutOfRangeException>(() => game.GetGemKindAt(0, Game.FieldHeight), "Should throw ArgumentOutOfRangeException when y is too large.");
         }
 
+        /// <summary>
+        /// Check: GetClusters() identifies the following types of clusters:
+        /// * Simple
+        /// * Four
+        /// * LargeL
+        /// * Hyper
+        /// </summary>
         [TestMethod]
-        public void GetClusters_IdentifiesAllClusters()
+        public void GetClusters_IdentifiesClusters()
         {
-            Gems.SetSeed(25337); // To make the test predictable
+            Gems.SetSeed(25337);
             Game game = new();
 
             List<GemCluster> clusters = game.GetClusters();
@@ -25,10 +32,44 @@ namespace DepthsTest
             Assert.AreEqual(3, clusters[0].Points.Count);
             Assert.AreEqual(ClusterType.Four, clusters[1].ClusterType);
             Assert.AreEqual(4, clusters[1].Points.Count);
-            Assert.AreEqual(ClusterType.L, clusters[2].ClusterType);
+            Assert.AreEqual(ClusterType.LargeL, clusters[2].ClusterType);
             Assert.AreEqual(6, clusters[2].Points.Count);
             Assert.AreEqual(ClusterType.Hyper, clusters[3].ClusterType);
             Assert.AreEqual(6, clusters[3].Points.Count);
+        }
+
+        /// <summary>
+        /// Check: GetClusters() identifies L cluster
+        /// </summary>
+        [TestMethod]
+        public void GetClusters_IdentifiesLargeL()
+        {
+            Gems.SetSeed(20);
+            Game game = new();
+
+            List<GemCluster> clusters = game.GetClusters();
+            Assert.AreEqual(3, clusters.Count);
+            Assert.AreEqual(ClusterType.L, clusters[0].ClusterType);
+            Assert.AreEqual(5, clusters[0].Points.Count);
+        }
+
+        /// <summary>
+        /// Just some tooling to find desired game seeds
+        /// </summary>
+        [TestMethod]
+        [Ignore]
+        public void Game_FindSeed()
+        {
+            int seed = 0;
+            List<GemCluster> clusters;
+            do
+            {
+                Gems.SetSeed(++seed);
+                Game game = new();
+
+                clusters = game.GetClusters();
+            } while (!(clusters.Any(c => c.ClusterType == ClusterType.L)));
+            Assert.AreEqual(0, seed);
         }
     }
 }

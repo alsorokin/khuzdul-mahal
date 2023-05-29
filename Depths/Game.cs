@@ -48,7 +48,6 @@
 
         public Game()
         {
-            // Gems.SetSeed(25337);
             // Fill the field with random gems
             // No checks for pre-existing matches yet
             for (int x = 0; x < FieldWidth; x++)
@@ -120,7 +119,9 @@
                             ClusterType type = ClusterType.Simple;
                             if (width >= 5 || height >= 5)
                                 type = ClusterType.Hyper;
-                            else if (width >= 3 && height >= 3)
+                            else if ((width >= 4 && height >= 3) || (width >= 3 && height >= 4))
+                                type = ClusterType.LargeL;
+                            else if (width == 3 && height == 3)
                                 type = ClusterType.L;
                             else if (width == 4 || height == 4)
                                 type = ClusterType.Four;
