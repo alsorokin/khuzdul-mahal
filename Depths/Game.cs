@@ -5,8 +5,8 @@
     /// </summary>
     public class Game
     {
-        public const int FieldWidth = 32;
-        public const int FieldHeight = 16;
+        public const int FieldWidth = 8;
+        public const int FieldHeight = 8;
         private readonly GemKind[,] gemKinds = new GemKind[FieldWidth, FieldHeight];
         private readonly GemPower[,] gemPowers = new GemPower[FieldWidth, FieldHeight];
 
@@ -26,8 +26,6 @@
 
         public Game()
         {
-            this.Score = 0;
-
             // Fill the field with random gems
             // No checks for pre-existing matches yet
             for (int x = 0; x < FieldWidth; x++)
@@ -36,12 +34,6 @@
                 {
                     this.gemKinds[x, y] = Gems.GetRandomGemKind();
                 }
-            }
-            
-            List<GemCluster> clusters = GetClusters();
-            foreach (GemCluster cluster in clusters)
-            {
-                Console.WriteLine($"{cluster.ClusterType}: {cluster.Points.First().Item1}:{cluster.Points.First().Item2}");
             }
         }
 

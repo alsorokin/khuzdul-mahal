@@ -12,13 +12,17 @@
 
     public static class Gems
     {
-        private static readonly Random random = new();
+        private static Random random = new();
+
+        public static void SetSeed(int seed)
+        {
+            random = new Random(seed);
+        }
 
         public static GemKind GetRandomGemKind()
         {
             Array values = Enum.GetValues(typeof(GemKind));
             return (GemKind)values.GetValue(random.Next(values.Length))!;
         }
-
     }
 }
