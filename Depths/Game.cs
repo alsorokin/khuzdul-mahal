@@ -59,6 +59,62 @@
             }
         }
 
+        public void Progress()
+        {
+            bool gemsFell = false;
+            // Fill empty space
+            for (int x = FieldWidth - 1; x >= 0; x--)
+            {
+                for (int y = FieldHeight - 1; y >= 0; y--)
+                {
+                    if (this.gemKinds[x, y] == GemKind.None)
+                    {
+                        gemsFell = true;
+                        // Go from bottom to top, swapping any non-empty cells with last known empty one
+                        int lastEmptyY = y;
+                        for (int yy = y - 1; yy >= 0; yy--)
+                        {
+                            if (this.gemKinds[x, yy] == GemKind.None)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                this.gemKinds[x, lastEmptyY] = this.gemKinds[x, yy];
+                                this.gemPowers[x, lastEmptyY] = this.gemPowers[x, yy];
+                                this.gemKinds[x, yy] = GemKind.None;
+                                this.gemPowers[x, yy] = GemPower.Normal;
+                                lastEmptyY--;
+                            }
+                        }
+                        // Fill all empty space that's left with random gems
+                        for (int yy = 0; yy <= lastEmptyY; yy++)
+                        {
+                            this.gemKinds[x, yy] = Gems.GetRandomGemKind();
+                        }
+                        // Since all work is done in one go, skip checking the remainder of the column
+                        break;
+                    }
+                }
+            }
+
+            // Only collect clusters when gems are settled,
+            // This is mainly for Gaze convenience
+            if (gemsFell) return;
+
+            // Find and collect clusters
+            List<GemCluster> clusters = GetClusters();
+            foreach (GemCluster cluster in clusters)
+            {
+                Score += cluster.Value;
+                foreach ((int, int) gem in cluster.Gems)
+                {
+                    gemKinds[gem.Item1, gem.Item2] = GemKind.None;
+                }
+                // TODO: Handle gem powers
+            }
+        }
+
         /// <summary>
         /// Scans the game field to detect and return all clusters of gems. A cluster is a group of
         /// three or more gems of the same kind that form a straight line or multiple intersecting lines.
@@ -128,7 +184,7 @@
                             else if ((width == 3 && height == 1) || (width == 1 && height == 3))
                                 type = ClusterType.Simple;
 
-                            GemCluster cluster = new() { Points = clusterPoints, ClusterType = type };
+                            GemCluster cluster = new() { Gems = clusterPoints, ClusterType = type };
                             clusters.Add(cluster);
                         }
                     }
@@ -186,6 +242,5 @@
 
             return line.Count >= 3 ? line : new List<(int, int)>();
         }
-
     }
 }

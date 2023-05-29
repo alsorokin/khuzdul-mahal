@@ -34,7 +34,35 @@
     /// </summary>
     public class GemCluster
     {
-        public List<(int, int)> Points = new();
+        public List<(int, int)> Gems = new();
         public ClusterType ClusterType;
+
+        public int Value
+        {
+            get
+            {
+                if (scoreTable.ContainsKey(ClusterType))
+                {
+                    return scoreTable[ClusterType];
+                }
+                else
+                {
+#if DEBUG
+                    throw new NotImplementedException($"Unknown ClusterType: {ClusterType}");
+#else
+                    return 0;
+#endif
+                }
+            }
+        }
+
+        private readonly Dictionary<ClusterType, int> scoreTable = new()
+        {
+            { ClusterType.Simple, 50  },
+            { ClusterType.Four,   100 },
+            { ClusterType.L,      150 },
+            { ClusterType.LargeL, 200 },
+            { ClusterType.Hyper,  250 },
+        };
     }
 }

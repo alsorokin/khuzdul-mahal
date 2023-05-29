@@ -29,13 +29,13 @@ namespace DepthsTest
 
             Assert.AreEqual(4, clusters.Count);
             Assert.AreEqual(ClusterType.Simple, clusters[0].ClusterType);
-            Assert.AreEqual(3, clusters[0].Points.Count);
+            Assert.AreEqual(3, clusters[0].Gems.Count);
             Assert.AreEqual(ClusterType.Four, clusters[1].ClusterType);
-            Assert.AreEqual(4, clusters[1].Points.Count);
+            Assert.AreEqual(4, clusters[1].Gems.Count);
             Assert.AreEqual(ClusterType.LargeL, clusters[2].ClusterType);
-            Assert.AreEqual(6, clusters[2].Points.Count);
+            Assert.AreEqual(6, clusters[2].Gems.Count);
             Assert.AreEqual(ClusterType.Hyper, clusters[3].ClusterType);
-            Assert.AreEqual(6, clusters[3].Points.Count);
+            Assert.AreEqual(6, clusters[3].Gems.Count);
         }
 
         /// <summary>
@@ -50,14 +50,13 @@ namespace DepthsTest
             List<GemCluster> clusters = game.GetClusters();
             Assert.AreEqual(3, clusters.Count);
             Assert.AreEqual(ClusterType.L, clusters[0].ClusterType);
-            Assert.AreEqual(5, clusters[0].Points.Count);
+            Assert.AreEqual(5, clusters[0].Gems.Count);
         }
 
         /// <summary>
         /// Just some tooling to find desired game seeds
         /// </summary>
-        [TestMethod]
-        [Ignore]
+        // [TestMethod]
         public void Game_FindSeed()
         {
             int seed = 0;
