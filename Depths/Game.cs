@@ -12,12 +12,34 @@
 
         public long Score { get; private set; }
 
+        /// <summary>
+        /// Retrieves the type of gem at the specified position in the game field.
+        /// </summary>
+        /// <param name="x">The x-coordinate of the gem position.</param>
+        /// <param name="y">The y-coordinate of the gem position.</param>
+        /// <returns>
+        /// The type (<see cref="GemKind"/>) of the gem at the specified position.
+        /// </returns>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown when the provided x or y coordinates are out of the game field bounds.
+        /// </exception>
         public GemKind GetGemKindAt(int x, int y)
         {
             VerifyXYBounds(x, y);
             return this.gemKinds[x, y];
         }
 
+        /// <summary>
+        /// Retrieves the power of the gem at the specified position in the game field.
+        /// </summary>
+        /// <param name="x">The x-coordinate of the gem position.</param>
+        /// <param name="y">The y-coordinate of the gem position.</param>
+        /// <returns>
+        /// The power (<see cref="GemPower"/>) of the gem at the specified position.
+        /// </returns>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown when the provided x or y coordinates are out of the game field bounds.
+        /// </exception>
         public GemPower GetGemPowerAt(int x, int y)
         {
             VerifyXYBounds(x, y);
@@ -26,6 +48,7 @@
 
         public Game()
         {
+            // Gems.SetSeed(25337);
             // Fill the field with random gems
             // No checks for pre-existing matches yet
             for (int x = 0; x < FieldWidth; x++)
@@ -37,6 +60,16 @@
             }
         }
 
+        /// <summary>
+        /// Scans the game field to detect and return all clusters of gems. A cluster is a group of
+        /// three or more gems of the same kind that form a straight line or multiple intersecting lines.
+        /// This function also determines the type of each cluster (Simple, Four, L, Hyper) based on the
+        /// size and shape of the cluster.
+        /// </summary>
+        /// <returns>
+        /// A list of all clusters found on the field. Each cluster is represented by a GemCluster object
+        /// that includes the coordinates of the gems in the cluster and the type of the cluster.
+        /// </returns>
         public List<GemCluster> GetClusters()
         {
             bool[,] horizontalLines = new bool[FieldWidth, FieldHeight];

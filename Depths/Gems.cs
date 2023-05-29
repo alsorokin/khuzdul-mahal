@@ -2,6 +2,7 @@
 {
     public enum GemKind
     {
+        None = 0,
         Amber, Amethyst, Diamond, Emerald, Ruby, Sapphire, Topaz
     }
 
@@ -22,7 +23,7 @@
         public static GemKind GetRandomGemKind()
         {
             Array values = Enum.GetValues(typeof(GemKind));
-            return (GemKind)values.GetValue(random.Next(values.Length))!;
+            return (GemKind)values.GetValue(random.Next(1, values.Length))!;
         }
     }
 }
