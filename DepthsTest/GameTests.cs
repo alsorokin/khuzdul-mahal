@@ -13,11 +13,30 @@ namespace DepthsTest
         }
 
         /// <summary>
+        /// Check: GetGemKindAt() returns the correct gem kind
+        /// </summary>
+        [TestMethod]
+        public void GetGemKindAt_ReturnsCorrectGemKind()
+        {
+            Gems.SetSeed(12345);
+            Game game = new();
+
+            Assert.AreEqual(GemKind.Amber, game.GetGemKindAt(0, 0));
+            Assert.AreEqual(GemKind.Amethyst, game.GetGemKindAt(1, 0));
+            Assert.AreEqual(GemKind.Amethyst, game.GetGemKindAt(2, 0));
+            Assert.AreEqual(GemKind.Ruby, game.GetGemKindAt(3, 0));
+            Assert.AreEqual(GemKind.Emerald, game.GetGemKindAt(4, 0));
+            Assert.AreEqual(GemKind.Ruby, game.GetGemKindAt(5, 0));
+            Assert.AreEqual(GemKind.Amethyst, game.GetGemKindAt(6, 0));
+            Assert.AreEqual(GemKind.Ruby, game.GetGemKindAt(7, 0));
+        }
+
+        /// <summary>
         /// Check: GetClusters() identifies the following types of clusters:
         /// * Simple
         /// * Four
         /// * LargeL
-        /// * Hyper
+        /// * Supernova
         /// </summary>
         [TestMethod]
         public void GetClusters_IdentifiesClusters()
@@ -34,9 +53,26 @@ namespace DepthsTest
             Assert.AreEqual(4, clusters[1].Gems.Count);
             Assert.AreEqual(ClusterType.LargeL, clusters[2].ClusterType);
             Assert.AreEqual(6, clusters[2].Gems.Count);
-            Assert.AreEqual(ClusterType.Hyper, clusters[3].ClusterType);
+            Assert.AreEqual(ClusterType.Supernova, clusters[3].ClusterType);
             Assert.AreEqual(6, clusters[3].Gems.Count);
         }
+
+        /// <summary>
+        /// Check: GetClusters() identifies Hyper cluster
+        /// </summary>
+        [TestMethod]
+        public void GetClusters_IdentifiesHyper()
+        {
+            Gems.SetSeed(18);
+            Game game = new();
+
+            List<GemCluster> clusters = game.GetClusters();
+
+            Assert.AreEqual(5, clusters.Count);
+            Assert.AreEqual(ClusterType.Hyper, clusters[2].ClusterType);
+            Assert.AreEqual(5, clusters[2].Gems.Count);
+        }
+
 
         /// <summary>
         /// Check: GetClusters() identifies L cluster
@@ -54,21 +90,6 @@ namespace DepthsTest
         }
 
         /// <summary>
-        /// Check: GetClusters() identifies supernova cluster
-        /// </summary>
-        [TestMethod]
-        public void GetClusters_IdentifiesSupernova()
-        {
-            Gems.SetSeed(195);
-            Game game = new();
-
-            List<GemCluster> clusters = game.GetClusters();
-            Assert.AreEqual(2, clusters.Count);
-            Assert.AreEqual(ClusterType.Supernova, clusters[0].ClusterType);
-            Assert.AreEqual(6, clusters[0].Gems.Count);
-        }
-
-        /// <summary>
         /// Just some tooling to find desired game seeds
         /// </summary>
         // [TestMethod]
@@ -82,7 +103,7 @@ namespace DepthsTest
                 Game game = new();
 
                 clusters = game.GetClusters();
-            } while (!(clusters.Any(c => c.ClusterType == ClusterType.Supernova)));
+            } while (!(clusters.Any(c => c.ClusterType == ClusterType.Hyper)));
             Assert.AreEqual(0, seed);
         }
     }

@@ -112,7 +112,7 @@
                 Score += cluster.WorthBonus;
                 foreach ((int, int) gem in cluster.Gems)
                 {
-                    CollectAt(gem.Item1, gem.Item2);
+                    CollectGem(gem.Item1, gem.Item2, gemKinds[cluster.Gems.First().Item1, cluster.Gems.First().Item2]);
                 }
                 // TODO: Create new power gems for non-simple clusters
             }
@@ -199,8 +199,9 @@
             return clusters;
         }
 
-        private void CollectAt(int x, int y)
+        private void CollectGem(int x, int y, GemKind kind)
         {
+            GemKind thisGemKind = gemKinds[x, y];
             // Collect the gem
             gemKinds[x, y] = GemKind.None;
             Score += Gems.GemWorth;
@@ -217,7 +218,7 @@
                             if (xx < 0 || xx >= FieldWidth || yy < 0 || yy >= FieldHeight)
                                 continue;
                             if (gemKinds[xx, yy] != GemKind.None)
-                                CollectAt(xx, yy);
+                                CollectGem(xx, yy, thisGemKind);
                         }
                     }
                     break;
@@ -228,12 +229,21 @@
                         for (int yy = 0; yy < FieldHeight; yy++)
                         {
                             if (gemKinds[xx, yy] != GemKind.None)
-                                CollectAt(xx, yy);
+                                CollectGem(xx, yy, thisGemKind);
                         }
                     }
                     break;
                 case GemPower.Hypercube:
-                    // TODO: handle hypercube power: collect all gems of the same kind (need info about the kind)
+                    // handle hypercube power: collect all gems of the same kind
+                    // TODO: correctly handle when a hypercube is matched with another hypercube (collect the whole field)
+                    for (int xx = 0; xx < FieldWidth; xx++)
+                    {
+                        for (int yy = 0; yy < FieldHeight; yy++)
+                        {
+                            if (gemKinds[xx, yy] == kind)
+                                CollectGem(xx, yy, kind);
+                        }
+                    }
                     break;
                 case GemPower.Supernova:
                     // handle supernova power: collect all gems in three horizontal and three vertical lines
@@ -244,7 +254,7 @@
                             if (xx < 0 || xx >= FieldWidth || yy < 0 || yy >= FieldHeight)
                                 continue;
                             if (gemKinds[xx, yy] != GemKind.None)
-                                CollectAt(xx, yy);
+                                CollectGem(xx, yy, thisGemKind);
                         }
                     }
                     break;
@@ -292,6 +302,9 @@
         {
             List<(int, int)> line = new();
             GemKind kind = gemKinds[x, y];
+            // Hypercubes and non-gems don't form lines
+            if (kind == GemKind.None || kind == GemKind.Hypercube)
+                return line;
 
             while (x >= 0 && x < FieldWidth && y >= 0 && y < FieldHeight && gemKinds[x, y] == kind)
             {

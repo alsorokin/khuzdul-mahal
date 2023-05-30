@@ -1,7 +1,7 @@
 ﻿using Depths;
 using Gaze;
 
-// Gems.SetSeed(195);
+// Gems.SetSeed(25337);
 Game game = new();
 Renderer.Render(game);
 Console.WriteLine();

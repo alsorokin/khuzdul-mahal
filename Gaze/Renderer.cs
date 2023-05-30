@@ -47,6 +47,8 @@ namespace Gaze
                     return ConsoleColor.DarkBlue;
                 case GemKind.Topaz:
                     return ConsoleColor.Yellow;
+                case GemKind.Hypercube:
+                    return ConsoleColor.DarkGray;
                 default:
                     throw new ArgumentOutOfRangeException($"Unknown gem kind: {kind}");
             }

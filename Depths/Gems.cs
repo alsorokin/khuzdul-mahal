@@ -2,8 +2,8 @@
 {
     public enum GemKind
     {
-        None = 0,
-        Amber, Amethyst, Diamond, Emerald, Ruby, Sapphire, Topaz
+        None = 0, Hypercube = 999,
+        Amber = 1, Amethyst = 2, Diamond = 3, Emerald = 4, Ruby = 5, Sapphire = 6, Topaz = 7
     }
 
     public enum GemPower
@@ -25,7 +25,7 @@
         public static GemKind GetRandomGemKind()
         {
             Array values = Enum.GetValues(typeof(GemKind));
-            return (GemKind)values.GetValue(random.Next(1, values.Length))!;
+            return (GemKind)values.GetValue(random.Next(1, values.Length - 1))!;
         }
     }
 }
