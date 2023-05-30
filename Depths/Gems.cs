@@ -13,6 +13,8 @@
 
     public static class Gems
     {
+        public const int GemWorth = 10;
+
         private static Random random = new();
 
         public static void SetSeed(int seed)

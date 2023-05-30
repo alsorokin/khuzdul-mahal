@@ -26,7 +26,7 @@
         public GemKind GetGemKindAt(int x, int y)
         {
             VerifyXYBounds(x, y);
-            return this.gemKinds[x, y];
+            return gemKinds[x, y];
         }
 
         /// <summary>
@@ -43,7 +43,7 @@
         public GemPower GetGemPowerAt(int x, int y)
         {
             VerifyXYBounds(x, y);
-            return this.gemPowers[x, y];
+            return gemPowers[x, y];
         }
 
         public Game()
@@ -54,7 +54,7 @@
             {
                 for (int y = 0; y < FieldHeight; y++)
                 {
-                    this.gemKinds[x, y] = Gems.GetRandomGemKind();
+                    gemKinds[x, y] = Gems.GetRandomGemKind();
                 }
             }
         }
@@ -70,30 +70,30 @@
             {
                 for (int y = FieldHeight - 1; y >= 0; y--)
                 {
-                    if (this.gemKinds[x, y] == GemKind.None)
+                    if (gemKinds[x, y] == GemKind.None)
                     {
                         gemsFell = true;
                         // Go from bottom to top, swapping any non-empty cells with last known empty one
                         int lastEmptyY = y;
                         for (int yy = y - 1; yy >= 0; yy--)
                         {
-                            if (this.gemKinds[x, yy] == GemKind.None)
+                            if (gemKinds[x, yy] == GemKind.None)
                             {
                                 continue;
                             }
                             else
                             {
-                                this.gemKinds[x, lastEmptyY] = this.gemKinds[x, yy];
-                                this.gemPowers[x, lastEmptyY] = this.gemPowers[x, yy];
-                                this.gemKinds[x, yy] = GemKind.None;
-                                this.gemPowers[x, yy] = GemPower.Normal;
+                                gemKinds[x, lastEmptyY] = gemKinds[x, yy];
+                                gemPowers[x, lastEmptyY] = gemPowers[x, yy];
+                                gemKinds[x, yy] = GemKind.None;
+                                gemPowers[x, yy] = GemPower.Normal;
                                 lastEmptyY--;
                             }
                         }
                         // Fill all empty space that's left with random gems
                         for (int yy = 0; yy <= lastEmptyY; yy++)
                         {
-                            this.gemKinds[x, yy] = Gems.GetRandomGemKind();
+                            gemKinds[x, yy] = Gems.GetRandomGemKind();
                         }
                         // Since all work is done in one go, skip checking the remainder of the column
                         break;
@@ -109,12 +109,11 @@
             List<GemCluster> clusters = GetClusters();
             foreach (GemCluster cluster in clusters)
             {
-                Score += cluster.Value;
+                Score += cluster.WorthBonus;
                 foreach ((int, int) gem in cluster.Gems)
                 {
-                    gemKinds[gem.Item1, gem.Item2] = GemKind.None;
+                    CollectAt(gem.Item1, gem.Item2);
                 }
-                // TODO: Explode power gems
                 // TODO: Create new power gems for non-simple clusters
             }
         }
@@ -198,6 +197,61 @@
             }
 
             return clusters;
+        }
+
+        private void CollectAt(int x, int y)
+        {
+            // Collect the gem
+            gemKinds[x, y] = GemKind.None;
+            Score += Gems.GemWorth;
+
+            // If the gem had a power, activate it
+            switch (gemPowers[x, y])
+            {
+                case GemPower.Fire:
+                    // handle fire power: 3x3 explosion
+                    for (int xx = x - 1; xx <= x + 1; xx++)
+                    {
+                        for (int yy = y - 1; yy <= y + 1; yy++)
+                        {
+                            if (xx < 0 || xx >= FieldWidth || yy < 0 || yy >= FieldHeight)
+                                continue;
+                            if (gemKinds[xx, yy] != GemKind.None)
+                                CollectAt(xx, yy);
+                        }
+                    }
+                    break;
+                case GemPower.Star:
+                    // handle star power: collect all gems horizontally and vertically
+                    for (int xx = 0; xx < FieldWidth; xx++)
+                    {
+                        for (int yy = 0; yy < FieldHeight; yy++)
+                        {
+                            if (gemKinds[xx, yy] != GemKind.None)
+                                CollectAt(xx, yy);
+                        }
+                    }
+                    break;
+                case GemPower.Hypercube:
+                    // TODO: handle hypercube power: collect all gems of the same kind (need info about the kind)
+                    break;
+                case GemPower.Supernova:
+                    // handle supernova power: collect all gems in three horizontal and three vertical lines
+                    for (int xx = x - 1; xx <= x + 1; xx++)
+                    {
+                        for (int yy = y - 1; yy <= y + 1; yy++)
+                        {
+                            if (xx < 0 || xx >= FieldWidth || yy < 0 || yy >= FieldHeight)
+                                continue;
+                            if (gemKinds[xx, yy] != GemKind.None)
+                                CollectAt(xx, yy);
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
+            gemPowers[x, y] = GemPower.Normal;
         }
 
         private void Dfs(int x, int y, bool[,] visited, List<(int, int)> cluster, GemKind kind, bool[,] horizontalLines, bool[,] verticalLines)

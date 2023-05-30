@@ -42,13 +42,13 @@
         public List<(int, int)> Gems = new();
         public ClusterType ClusterType;
 
-        public int Value
+        public int WorthBonus
         {
             get
             {
-                if (scoreTable.ContainsKey(ClusterType))
+                if (bonuses.ContainsKey(ClusterType))
                 {
-                    return scoreTable[ClusterType];
+                    return bonuses[ClusterType];
                 }
                 else
                 {
@@ -61,14 +61,14 @@
             }
         }
 
-        private readonly Dictionary<ClusterType, int> scoreTable = new()
+        private readonly Dictionary<ClusterType, int> bonuses = new()
         {
-            { ClusterType.Simple,    50  },
-            { ClusterType.Four,      100 },
-            { ClusterType.L,         150 },
-            { ClusterType.LargeL,    200 },
-            { ClusterType.Hyper,     250 },
-            { ClusterType.Supernova, 500 }
+            { ClusterType.Simple,    0   },
+            { ClusterType.Four,      10  },
+            { ClusterType.L,         30  },
+            { ClusterType.LargeL,    50  },
+            { ClusterType.Hyper,     100 },
+            { ClusterType.Supernova, 250 }
         };
     }
 }
