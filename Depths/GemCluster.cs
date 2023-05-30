@@ -26,7 +26,12 @@
         /// <summary>
         /// Five in a row, forming a hypercube
         /// </summary>
-        Hyper
+        Hyper,
+
+        /// <summary>
+        /// Six in a row, forming a supernova
+        /// </summary>
+        Supernova,
     }
 
     /// <summary>

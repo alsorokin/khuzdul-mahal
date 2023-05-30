@@ -54,6 +54,21 @@ namespace DepthsTest
         }
 
         /// <summary>
+        /// Check: GetClusters() identifies supernova cluster
+        /// </summary>
+        [TestMethod]
+        public void GetClusters_IdentifiesSupernova()
+        {
+            Gems.SetSeed(195);
+            Game game = new();
+
+            List<GemCluster> clusters = game.GetClusters();
+            Assert.AreEqual(2, clusters.Count);
+            Assert.AreEqual(ClusterType.Supernova, clusters[0].ClusterType);
+            Assert.AreEqual(6, clusters[0].Gems.Count);
+        }
+
+        /// <summary>
         /// Just some tooling to find desired game seeds
         /// </summary>
         // [TestMethod]
@@ -67,7 +82,7 @@ namespace DepthsTest
                 Game game = new();
 
                 clusters = game.GetClusters();
-            } while (!(clusters.Any(c => c.ClusterType == ClusterType.L)));
+            } while (!(clusters.Any(c => c.ClusterType == ClusterType.Supernova)));
             Assert.AreEqual(0, seed);
         }
     }

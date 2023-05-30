@@ -8,7 +8,7 @@
 
     public enum GemPower
     {
-        Normal, Fire, Star, Hypercube
+        Normal, Fire, Star, Hypercube, Supernova
     }
 
     public static class Gems

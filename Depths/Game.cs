@@ -59,6 +59,9 @@
             }
         }
 
+        /// <summary>
+        /// Progresses the game by one step. This includes falling of gems and collecting clusters.
+        /// </summary>
         public void Progress()
         {
             bool gemsFell = false;
@@ -111,7 +114,8 @@
                 {
                     gemKinds[gem.Item1, gem.Item2] = GemKind.None;
                 }
-                // TODO: Handle gem powers
+                // TODO: Explode power gems
+                // TODO: Create new power gems for non-simple clusters
             }
         }
 
@@ -148,7 +152,7 @@
                 }
             }
 
-            List<GemCluster> clusters = new List<GemCluster>();
+            List<GemCluster> clusters = new();
             bool[,] visited = new bool[FieldWidth, FieldHeight];
 
             for (int x = 0; x < FieldWidth; x++)
@@ -173,7 +177,9 @@
                             int height = maxY - minY + 1;
 
                             ClusterType type = ClusterType.Simple;
-                            if (width >= 5 || height >= 5)
+                            if (width >= 6 || height >= 6)
+                                type = ClusterType.Supernova;
+                            else if (width >= 5 || height >= 5)
                                 type = ClusterType.Hyper;
                             else if ((width >= 4 && height >= 3) || (width >= 3 && height >= 4))
                                 type = ClusterType.LargeL;
