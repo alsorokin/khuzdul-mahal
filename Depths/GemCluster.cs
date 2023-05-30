@@ -63,11 +63,12 @@
 
         private readonly Dictionary<ClusterType, int> scoreTable = new()
         {
-            { ClusterType.Simple, 50  },
-            { ClusterType.Four,   100 },
-            { ClusterType.L,      150 },
-            { ClusterType.LargeL, 200 },
-            { ClusterType.Hyper,  250 },
+            { ClusterType.Simple,    50  },
+            { ClusterType.Four,      100 },
+            { ClusterType.L,         150 },
+            { ClusterType.LargeL,    200 },
+            { ClusterType.Hyper,     250 },
+            { ClusterType.Supernova, 500 }
         };
     }
 }
