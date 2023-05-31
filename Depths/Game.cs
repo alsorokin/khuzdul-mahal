@@ -17,12 +17,7 @@
         /// </summary>
         /// <param name="x">The x-coordinate of the gem position.</param>
         /// <param name="y">The y-coordinate of the gem position.</param>
-        /// <returns>
-        /// The type (<see cref="GemKind"/>) of the gem at the specified position.
-        /// </returns>
-        /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown when the provided x or y coordinates are out of the game field bounds.
-        /// </exception>
+        /// <returns>The type (<see cref="GemKind"/>) of the gem at the specified position.</returns>
         public GemKind GetGemKindAt(int x, int y)
         {
             VerifyXYBounds(x, y);
@@ -30,20 +25,35 @@
         }
 
         /// <summary>
+        /// Retrieves the type of gem at the specified position in the game field.
+        /// </summary>
+        /// <param name="position">The position of the gem.</param>
+        /// <returns>The type (<see cref="GemKind"/>) of the gem at the specified position.</returns>
+        public GemKind GetGemKindAt(Position position)
+        {
+            return GetGemKindAt(position.x, position.y);
+        }
+
+        /// <summary>
         /// Retrieves the power of the gem at the specified position in the game field.
         /// </summary>
         /// <param name="x">The x-coordinate of the gem position.</param>
         /// <param name="y">The y-coordinate of the gem position.</param>
-        /// <returns>
-        /// The power (<see cref="GemPower"/>) of the gem at the specified position.
-        /// </returns>
-        /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown when the provided x or y coordinates are out of the game field bounds.
-        /// </exception>
+        /// <returns>The power (<see cref="GemPower"/>) of the gem at the specified position.</returns>
         public GemPower GetGemPowerAt(int x, int y)
         {
             VerifyXYBounds(x, y);
             return gemPowers[x, y];
+        }
+
+        /// <summary>
+        /// Retrieves the power of the gem at the specified position in the game field.
+        /// </summary>
+        /// <param name="position">The position of the gem.</param>
+        /// <returns>The power (<see cref="GemPower"/>) of the gem at the specified position.</returns>
+        public GemPower GetGemPowerAt(Position position)
+        {
+            return GetGemPowerAt(position.x, position.y);
         }
 
         public Game()
@@ -110,9 +120,9 @@
             foreach (GemCluster cluster in clusters)
             {
                 Score += cluster.WorthBonus;
-                foreach ((int, int) gem in cluster.Gems)
+                foreach (Position gem in cluster.Gems)
                 {
-                    CollectGem(gem.Item1, gem.Item2, gemKinds[cluster.Gems.First().Item1, cluster.Gems.First().Item2]);
+                    CollectGem(gem.x, gem.y, gemKinds[cluster.Gems.First().x, cluster.Gems.First().y]);
                 }
                 // TODO: Create new power gems for non-simple clusters
             }
@@ -137,16 +147,16 @@
             {
                 for (int y = 0; y < FieldHeight; y++)
                 {
-                    List<(int, int)> horizontalLine = FindLine(x, y, 1, 0);
-                    foreach ((int, int) point in horizontalLine)
+                    List<Position> horizontalLine = FindLine(x, y, 1, 0);
+                    foreach (Position point in horizontalLine)
                     {
-                        horizontalLines[point.Item1, point.Item2] = true;
+                        horizontalLines[point.x, point.y] = true;
                     }
 
-                    List<(int, int)> verticalLine = FindLine(x, y, 0, 1);
-                    foreach ((int, int) point in verticalLine)
+                    List<Position> verticalLine = FindLine(x, y, 0, 1);
+                    foreach (Position point in verticalLine)
                     {
-                        verticalLines[point.Item1, point.Item2] = true;
+                        verticalLines[point.x, point.y] = true;
                     }
                 }
             }
@@ -161,16 +171,16 @@
                     if (!visited[x, y] && (horizontalLines[x, y] || verticalLines[x, y]))
                     {
                         // Find all gems in this cluster
-                        List<(int, int)> clusterPoints = new();
+                        List<Position> clusterPoints = new();
                         Dfs(x, y, visited, clusterPoints, gemKinds[x, y], horizontalLines, verticalLines);
 
                         if (clusterPoints.Count >= 3)
                         {
                             // Determine the cluster type
-                            int minX = clusterPoints.Min(gem => gem.Item1);
-                            int maxX = clusterPoints.Max(gem => gem.Item1);
-                            int minY = clusterPoints.Min(gem => gem.Item2);
-                            int maxY = clusterPoints.Max(gem => gem.Item2);
+                            int minX = clusterPoints.Min(gem => gem.x);
+                            int maxX = clusterPoints.Max(gem => gem.x);
+                            int minY = clusterPoints.Min(gem => gem.y);
+                            int maxY = clusterPoints.Max(gem => gem.y);
 
                             int width = maxX - minX + 1;
                             int height = maxY - minY + 1;
@@ -264,7 +274,7 @@
             gemPowers[x, y] = GemPower.Normal;
         }
 
-        private void Dfs(int x, int y, bool[,] visited, List<(int, int)> cluster, GemKind kind, bool[,] horizontalLines, bool[,] verticalLines)
+        private void Dfs(int x, int y, bool[,] visited, List<Position> cluster, GemKind kind, bool[,] horizontalLines, bool[,] verticalLines)
         {
             if (x < 0 || x >= FieldWidth || y < 0 || y >= FieldHeight)
                 return; // Out of bounds
@@ -273,7 +283,7 @@
                 return; // Either already visited or not the right kind
 
             visited[x, y] = true; // Mark as visited
-            cluster.Add((x, y)); // Add to the cluster
+            cluster.Add(new Position(x, y)); // Add to the cluster
 
             // Visit all neighbors in a line of matched gems
             if (x > 0 && horizontalLines[x - 1, y])
@@ -298,9 +308,9 @@
             }
         }
 
-        private List<(int, int)> FindLine(int x, int y, int dx, int dy)
+        private List<Position> FindLine(int x, int y, int dx, int dy)
         {
-            List<(int, int)> line = new();
+            List<Position> line = new();
             GemKind kind = gemKinds[x, y];
             // Hypercubes and non-gems don't form lines
             if (kind == GemKind.None || kind == GemKind.Hypercube)
@@ -308,12 +318,12 @@
 
             while (x >= 0 && x < FieldWidth && y >= 0 && y < FieldHeight && gemKinds[x, y] == kind)
             {
-                line.Add((x, y));
+                line.Add(new Position(x, y));
                 x += dx;
                 y += dy;
             }
 
-            return line.Count >= 3 ? line : new List<(int, int)>();
+            return line.Count >= 3 ? line : new List<Position>();
         }
     }
 }

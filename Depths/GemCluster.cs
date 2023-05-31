@@ -39,7 +39,7 @@
     /// </summary>
     public class GemCluster
     {
-        public List<(int, int)> Gems = new();
+        public List<Position> Gems = new();
         public ClusterType ClusterType;
 
         public int WorthBonus
