@@ -21,6 +21,26 @@
             this.x = x;
             this.y = y;
         }
+
+        public static bool operator ==(Position a, Position b)
+        {
+            return a.x == b.x && a.y == b.y;
+        }
+
+        public static bool operator !=(Position a, Position b)
+        {
+            return !(a == b);
+        }
+
+        public override bool Equals(object? obj)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int GetHashCode()
+        {
+            throw new NotImplementedException();
+        }
     }
 
     public static class Gems

@@ -1,5 +1,7 @@
 ﻿namespace Depths
 {
+    using System.Collections.Generic;
+
     /// <summary>
     /// Main game logic
     /// </summary>
@@ -207,6 +209,85 @@
             }
 
             return clusters;
+        }
+
+        /// <summary>
+        /// Represents a potential move that the player can make. A move is defined by the starting
+        /// position of the gem and the direction in which it is moved.
+        /// </summary>
+        public struct Move
+        {
+            public Move(Position start, int dx = 0, int dy = 0)
+            {
+                if (dx < -1 || dx > 1)
+                    throw new ArgumentOutOfRangeException(nameof(dx), dx, "Move must be at most 1 unit in either direction");
+                if (dy < -1 || dy > 1)
+                    throw new ArgumentOutOfRangeException(nameof(dy), dy, "Move must be at most 1 unit in either direction");
+                if (dx == 0 && dy == 0)
+                    throw new ArgumentException($"Move must be non-zero. Set either {nameof(dx)} or {nameof(dy)}", nameof(dx));
+                if (Math.Abs(dx) == 1 && Math.Abs(dy) == 1)
+                    throw new ArgumentException($"Move must not be diagonal. Set either {nameof(dx)} or {nameof(dy)}", nameof(dx));
+                Start = start;
+                DX = dx;
+                DY = dy;
+            }
+
+            public Position Start;
+            public int DX = 0;
+            public int DY = 0;
+            public Position End => new() { x = Start.x + DX, y = Start.y + DY };
+        }
+
+        /// <summary>
+        /// Computes and returns a list of all possible <see cref="Move">moves</see> that can be made on the field.
+        /// A move is considered possible if it leads to the formation of a cluster.
+        /// </summary>
+        /// <returns>
+        /// A list of all possible <see cref="Move">moves</see>.
+        /// Empty list if there are none or there are some clusters formed already.
+        /// </returns>
+        public List<Move> GetPossibleMoves()
+        {
+            List<Move> moves = new();
+            List<GemCluster> clusters = GetClusters();
+            // If there are clusters formed already, no moves are possible until the clusters are collected
+            if (clusters.Count > 0)
+                return moves;
+            // If there are empty cells, no moves are possible until they are filled
+            if (gemKinds.Cast<GemKind>().Any((kind) => kind == GemKind.None))
+                return moves;
+
+            // Temporarily swap gems, then call GetClusters to see if any clusters are formed
+            // If so, then this move is possible
+            for (int x = 0; x < FieldWidth; x++)
+            {
+                for (int y = 0; y < FieldHeight; y++)
+                {
+                    List<Move> potentialMoves = new()
+                    {
+                        new Move (new Position(x, y), dx: 1), // Right move
+                        new Move (new Position(x, y), dy: 1), // Down move
+                    };
+
+                    foreach (Move move in potentialMoves)
+                    {
+                        int newX = move.Start.x + move.DX;
+                        int newY = move.Start.y + move.DY;
+                        if (newX < 0 || newX >= FieldWidth || newY < 0 || newY >= FieldHeight)
+                            continue; // Skip invalid moves
+
+                        // Swap gems
+                        (gemKinds[newX, newY], gemKinds[x, y]) = (gemKinds[x, y], gemKinds[newX, newY]);
+                        if (GetClusters().Count > 0)
+                            moves.Add(move); // This move leads to at least one cluster
+
+                        // Swap back
+                        (gemKinds[newX, newY], gemKinds[x, y]) = (gemKinds[x, y], gemKinds[newX, newY]);
+                    }
+                }
+            }
+
+            return moves;
         }
 
         private void CollectGem(int x, int y, GemKind kind)

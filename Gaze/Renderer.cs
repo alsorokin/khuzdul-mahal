@@ -9,23 +9,34 @@ namespace Gaze
 
         internal static void Render(Game game)
         {
+            List<Game.Move> moves = game.GetPossibleMoves();
             for (int y = 0; y < Game.FieldHeight; y++)
             {
                 for (int x = 0; x < Game.FieldWidth; x++)
                 {
-                    RenderGem(game.GetGemKindAt(x, y));
+                    RenderGem(game.GetGemKindAt(x, y), new Position(x, y), moves);
                     Console.Write(' ');
                 }
                 Console.WriteLine();
             }
         }
 
-        private static void RenderGem(GemKind kind)
+        private static void RenderGem(GemKind kind, Position position, List<Game.Move> moves)
         {
+            // Prepare
             ConsoleColor oldForeground = Console.ForegroundColor;
+            ConsoleColor oldBackground = Console.BackgroundColor;
+
+            // Set colors
             Console.ForegroundColor = GetGemColor(kind);
+            Console.BackgroundColor = moves.Any(move => move.Start == position || move.End == position) ? ConsoleColor.DarkGray : ConsoleColor.Black;
+
+            // Write
             Console.Write(kind == GemKind.None ? NoneSymbol : GemSymbol);
+
+            // Restore
             Console.ForegroundColor = oldForeground;
+            Console.BackgroundColor = oldBackground;
         }
 
         private static ConsoleColor GetGemColor(GemKind kind)
