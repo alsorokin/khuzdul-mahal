@@ -19,6 +19,7 @@ namespace Gaze
                 }
                 Console.WriteLine();
             }
+            Console.WriteLine($"Score: {game.Score}; Tick: {game.Tick}");
         }
 
         private static void RenderGem(GemKind kind, Position position, List<Game.Move> moves)

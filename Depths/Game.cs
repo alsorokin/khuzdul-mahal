@@ -11,8 +11,13 @@
         public const int FieldHeight = 8;
         private readonly GemKind[,] gemKinds = new GemKind[FieldWidth, FieldHeight];
         private readonly GemPower[,] gemPowers = new GemPower[FieldWidth, FieldHeight];
+        private Move currentMove;
+        private long gameTick = 0;
+        private (long, List<GemCluster>) cachedClusters = (-1, new());
+        private (long, List<Move>) cachedMoves = (-1, new());
 
         public long Score { get; private set; }
+        public long Tick => gameTick;
 
         /// <summary>
         /// Retrieves the type of gem at the specified position in the game field.
@@ -71,6 +76,12 @@
             }
         }
 
+        public void MakeMove(Move move)
+        {
+            // Save the move for processing
+            currentMove = move;
+        }
+
         /// <summary>
         /// Progresses the game by one step. This includes falling of gems and collecting clusters.
         /// </summary>
@@ -115,7 +126,11 @@
 
             // Only collect clusters when gems are settled,
             // This is mainly for Gaze convenience
-            if (gemsFell) return;
+            if (gemsFell)
+            {
+                gameTick++;
+                return;
+            }
 
             // Find and collect clusters
             List<GemCluster> clusters = GetClusters();
@@ -127,6 +142,12 @@
                     CollectGem(gem.x, gem.y, gemKinds[cluster.Gems.First().x, cluster.Gems.First().y]);
                 }
                 // TODO: Create new power gems for non-simple clusters
+            }
+            // Only increment game tick if clusters were found
+            // This way we can reuse cached clusters and moves when nothing happens
+            if (clusters.Count > 0)
+            {
+                gameTick++;
             }
         }
 
@@ -140,8 +161,14 @@
         /// A list of all clusters found on the field. Each cluster is represented by a GemCluster object
         /// that includes the coordinates of the gems in the cluster and the type of the cluster.
         /// </returns>
-        public List<GemCluster> GetClusters()
+        public List<GemCluster> GetClusters(bool forceRecalculation = false)
         {
+            // Return cached clusters if possible
+            if (cachedClusters.Item1 == gameTick && !forceRecalculation)
+            {
+                return cachedClusters.Item2;
+            }
+
             bool[,] horizontalLines = new bool[FieldWidth, FieldHeight];
             bool[,] verticalLines = new bool[FieldWidth, FieldHeight];
 
@@ -163,7 +190,7 @@
                 }
             }
 
-            List<GemCluster> clusters = new();
+            List<GemCluster> clusters = new List<GemCluster>();
             bool[,] visited = new bool[FieldWidth, FieldHeight];
 
             for (int x = 0; x < FieldWidth; x++)
@@ -208,7 +235,11 @@
                 }
             }
 
-            return clusters;
+            if (!forceRecalculation)
+            {
+                cachedClusters = (gameTick, clusters);
+            }
+            return cachedClusters.Item2;
         }
 
         /// <summary>
@@ -248,14 +279,20 @@
         /// </returns>
         public List<Move> GetPossibleMoves()
         {
-            List<Move> moves = new();
+            // Retirn cached moves if possible
+            if (cachedMoves.Item1 == gameTick)
+            {
+                return cachedMoves.Item2;
+            }
+
+            cachedMoves = (gameTick, new());
             List<GemCluster> clusters = GetClusters();
             // If there are clusters formed already, no moves are possible until the clusters are collected
             if (clusters.Count > 0)
-                return moves;
+                return cachedMoves.Item2;
             // If there are empty cells, no moves are possible until they are filled
             if (gemKinds.Cast<GemKind>().Any((kind) => kind == GemKind.None))
-                return moves;
+                return cachedMoves.Item2;
 
             // Temporarily swap gems, then call GetClusters to see if any clusters are formed
             // If so, then this move is possible
@@ -279,7 +316,7 @@
                         // Swap gems
                         (gemKinds[newX, newY], gemKinds[x, y]) = (gemKinds[x, y], gemKinds[newX, newY]);
                         if (GetClusters().Count > 0)
-                            moves.Add(move); // This move leads to at least one cluster
+                            cachedMoves.Item2.Add(move); // This move leads to at least one cluster
 
                         // Swap back
                         (gemKinds[newX, newY], gemKinds[x, y]) = (gemKinds[x, y], gemKinds[newX, newY]);
@@ -287,7 +324,7 @@
                 }
             }
 
-            return moves;
+            return cachedMoves.Item2;
         }
 
         private void CollectGem(int x, int y, GemKind kind)
