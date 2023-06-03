@@ -11,7 +11,7 @@
         public const int FieldHeight = 8;
         private readonly GemKind[,] gemKinds = new GemKind[FieldWidth, FieldHeight];
         private readonly GemPower[,] gemPowers = new GemPower[FieldWidth, FieldHeight];
-        private Move currentMove;
+        private Move? currentMove = null;
         private long gameTick = 0;
         private (long, List<GemCluster>) cachedClusters = (-1, new());
         private (long, List<Move>) cachedMoves = (-1, new());
@@ -76,10 +76,35 @@
             }
         }
 
+        /// <summary>
+        /// Checks if the specified move is valid and if so, executes it.
+        /// </summary>
         public void MakeMove(Move move)
         {
-            // Save the move for processing
-            currentMove = move;
+            // Verify that the move results in a cluster
+            if (IsMoveValid(move))
+            {
+                // Save the move for processing
+                currentMove = move;
+            }
+        }
+
+        private bool IsMoveValid(Move move)
+        {
+            // Move constructor already checks for bounds, only check for empty cell and that the move is resultant in a cluster
+            if (gemKinds[move.Start.x, move.Start.y] == GemKind.None || gemKinds[move.End.x, move.End.y] == GemKind.None)
+            {
+                // Can't move from or to an empty cell
+                return false;
+            }
+            else
+            {
+                // Check if the move results in a cluster
+                // This is done by checking if the move is in the list of moves that result in a cluster
+                // TODO: Rewrite to a more efficient algorithm, for example by doing a DFS from the start and the end of the move
+                List<Move> validMoves = GetValidMoves();
+                return validMoves.Contains(move);
+            }
         }
 
         /// <summary>
@@ -87,45 +112,9 @@
         /// </summary>
         public void Progress()
         {
-            bool gemsFell = false;
-            // Fill empty space
-            for (int x = FieldWidth - 1; x >= 0; x--)
-            {
-                for (int y = FieldHeight - 1; y >= 0; y--)
-                {
-                    if (gemKinds[x, y] == GemKind.None)
-                    {
-                        gemsFell = true;
-                        // Go from bottom to top, swapping any non-empty cells with last known empty one
-                        int lastEmptyY = y;
-                        for (int yy = y - 1; yy >= 0; yy--)
-                        {
-                            if (gemKinds[x, yy] == GemKind.None)
-                            {
-                                continue;
-                            }
-                            else
-                            {
-                                gemKinds[x, lastEmptyY] = gemKinds[x, yy];
-                                gemPowers[x, lastEmptyY] = gemPowers[x, yy];
-                                gemKinds[x, yy] = GemKind.None;
-                                gemPowers[x, yy] = GemPower.Normal;
-                                lastEmptyY--;
-                            }
-                        }
-                        // Fill all empty space that's left with random gems
-                        for (int yy = 0; yy <= lastEmptyY; yy++)
-                        {
-                            gemKinds[x, yy] = Gems.GetRandomGemKind();
-                        }
-                        // Since all work is done in one go, skip checking the remainder of the column
-                        break;
-                    }
-                }
-            }
-
             // Only collect clusters when gems are settled,
             // This is mainly for Gaze convenience
+            bool gemsFell = Fall();
             if (gemsFell)
             {
                 gameTick++;
@@ -134,20 +123,22 @@
 
             // Find and collect clusters
             List<GemCluster> clusters = GetClusters();
-            foreach (GemCluster cluster in clusters)
-            {
-                Score += cluster.WorthBonus;
-                foreach (Position gem in cluster.Gems)
-                {
-                    CollectGem(gem.x, gem.y, gemKinds[cluster.Gems.First().x, cluster.Gems.First().y]);
-                }
-                // TODO: Create new power gems for non-simple clusters
-            }
+            CollectClusters(clusters);
             // Only increment game tick if clusters were found
             // This way we can reuse cached clusters and moves when nothing happens
             if (clusters.Count > 0)
             {
                 gameTick++;
+                return;
+            }
+
+            // Execute outstanding move
+            if (currentMove != null)
+            {
+                SwapGems(currentMove.Value.Start, currentMove.Value.End);
+                currentMove = null;
+                gameTick++;
+                return;
             }
         }
 
@@ -190,7 +181,7 @@
                 }
             }
 
-            List<GemCluster> clusters = new List<GemCluster>();
+            List<GemCluster> clusters = new();
             bool[,] visited = new bool[FieldWidth, FieldHeight];
 
             for (int x = 0; x < FieldWidth; x++)
@@ -239,34 +230,7 @@
             {
                 cachedClusters = (gameTick, clusters);
             }
-            return cachedClusters.Item2;
-        }
-
-        /// <summary>
-        /// Represents a potential move that the player can make. A move is defined by the starting
-        /// position of the gem and the direction in which it is moved.
-        /// </summary>
-        public struct Move
-        {
-            public Move(Position start, int dx = 0, int dy = 0)
-            {
-                if (dx < -1 || dx > 1)
-                    throw new ArgumentOutOfRangeException(nameof(dx), dx, "Move must be at most 1 unit in either direction");
-                if (dy < -1 || dy > 1)
-                    throw new ArgumentOutOfRangeException(nameof(dy), dy, "Move must be at most 1 unit in either direction");
-                if (dx == 0 && dy == 0)
-                    throw new ArgumentException($"Move must be non-zero. Set either {nameof(dx)} or {nameof(dy)}", nameof(dx));
-                if (Math.Abs(dx) == 1 && Math.Abs(dy) == 1)
-                    throw new ArgumentException($"Move must not be diagonal. Set either {nameof(dx)} or {nameof(dy)}", nameof(dx));
-                Start = start;
-                DX = dx;
-                DY = dy;
-            }
-
-            public Position Start;
-            public int DX = 0;
-            public int DY = 0;
-            public Position End => new() { x = Start.x + DX, y = Start.y + DY };
+            return clusters;
         }
 
         /// <summary>
@@ -277,7 +241,7 @@
         /// A list of all possible <see cref="Move">moves</see>.
         /// Empty list if there are none or there are some clusters formed already.
         /// </returns>
-        public List<Move> GetPossibleMoves()
+        public List<Move> GetValidMoves()
         {
             // Retirn cached moves if possible
             if (cachedMoves.Item1 == gameTick)
@@ -314,17 +278,76 @@
                             continue; // Skip invalid moves
 
                         // Swap gems
-                        (gemKinds[newX, newY], gemKinds[x, y]) = (gemKinds[x, y], gemKinds[newX, newY]);
-                        if (GetClusters().Count > 0)
+                        SwapGems(new Position(newX, newY), new Position(x, y));
+                        if (GetClusters(true).Count > 0)
                             cachedMoves.Item2.Add(move); // This move leads to at least one cluster
 
                         // Swap back
-                        (gemKinds[newX, newY], gemKinds[x, y]) = (gemKinds[x, y], gemKinds[newX, newY]);
+                        SwapGems(new Position(newX, newY), new Position(x, y));
                     }
                 }
             }
 
             return cachedMoves.Item2;
+        }
+
+        private void SwapGems(Position pos1, Position pos2)
+        {
+            (gemKinds[pos2.x, pos2.y], gemKinds[pos1.x, pos1.y]) = (gemKinds[pos1.x, pos1.y], gemKinds[pos2.x, pos2.y]);
+        }
+
+        private bool Fall()
+        {
+            bool fell = false;
+            // Fill empty space
+            for (int x = FieldWidth - 1; x >= 0; x--)
+            {
+                for (int y = FieldHeight - 1; y >= 0; y--)
+                {
+                    if (gemKinds[x, y] == GemKind.None)
+                    {
+                        fell = true;
+                        // Go from bottom to top, swapping any non-empty cells with last known empty one
+                        int lastEmptyY = y;
+                        for (int yy = y - 1; yy >= 0; yy--)
+                        {
+                            if (gemKinds[x, yy] == GemKind.None)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                gemKinds[x, lastEmptyY] = gemKinds[x, yy];
+                                gemPowers[x, lastEmptyY] = gemPowers[x, yy];
+                                gemKinds[x, yy] = GemKind.None;
+                                gemPowers[x, yy] = GemPower.Normal;
+                                lastEmptyY--;
+                            }
+                        }
+                        // Fill all empty space that's left with random gems
+                        for (int yy = 0; yy <= lastEmptyY; yy++)
+                        {
+                            gemKinds[x, yy] = Gems.GetRandomGemKind();
+                        }
+                        // Since all work is done in one go, skip checking the remainder of the column
+                        break;
+                    }
+                }
+            }
+            return fell;
+        }
+
+        private void CollectClusters(List<GemCluster> clusters)
+        {
+            foreach (GemCluster cluster in clusters)
+            {
+                Score += cluster.WorthBonus;
+                foreach (Position gem in cluster.Gems)
+                {
+                    CollectGem(gem.x, gem.y, gemKinds[cluster.Gems.First().x, cluster.Gems.First().y]);
+                }
+                // TODO: Create new power gems for non-simple clusters
+            }
         }
 
         private void CollectGem(int x, int y, GemKind kind)
