@@ -34,12 +34,12 @@
 
         public override bool Equals(object? obj)
         {
-            throw new NotImplementedException();
+            return obj is Position position && this == position;
         }
 
         public override int GetHashCode()
         {
-            throw new NotImplementedException();
+            return HashCode.Combine(x, y);
         }
     }
 

@@ -3,14 +3,28 @@ using System.Collections.ObjectModel;
 
 namespace Gaze
 {
-    internal static class Renderer
+    internal class Renderer
     {
+        public bool HighlightValidMoves { get; set; } = false;
+        public bool HighlightCustomMove { get; set; } = false;
+
+        internal Move? HighlightedMove { get; set; }
+
         private const char GemSymbol       = '@';
         private const char FireSymbol      = 'F';
         private const char StarSymbol      = 'S';
         private const char HypercubeSymbol = 'H';
         private const char SupernovaSymbol = 'N';
         private const char NoneSymbol      = '.';
+
+        private readonly ConsoleColor defaultBackgroundColor;
+        private readonly ConsoleColor defaultForegroundColor;
+
+        internal Renderer()
+        {
+            defaultBackgroundColor = Console.BackgroundColor;
+            defaultForegroundColor = Console.ForegroundColor;
+        }
 
         private static readonly ReadOnlyDictionary<GemPower, char> GemSymbols = new(new Dictionary<GemPower, char>
         {
@@ -34,37 +48,57 @@ namespace Gaze
             { GemKind.Topaz,     ConsoleColor.Yellow      },
         });
 
-        public static void Render(Game game)
+        internal void Render(Game game)
         {
             List<Move> validMoves = game.GetValidMoves();
-            for (int y = 0; y < Game.FieldHeight; y++)
+            for (int y = 0; y < Field.Height; y++)
             {
-                for (int x = 0; x < Game.FieldWidth; x++)
+                for (int x = 0; x < Field.Width; x++)
                 {
-                    RenderGem(game.GetGemKindAt(x, y), game.GetGemPowerAt(x, y), new Position(x, y), validMoves);
+                    RenderGem(game.Field.GetGemKindAt(x, y), game.Field.GetGemPowerAt(x, y), new Position(x, y), validMoves);
                     Console.Write(' ');
                 }
                 Console.WriteLine();
             }
-            Console.WriteLine($"Score: {game.Score}; Tick: {game.Tick}; Clusters: {game.GetClusters().Count}, Valid moves: {game.GetValidMoves().Count}");
+            Console.WriteLine($"Score: {game.Score}; Tick: {game.Tick}; Clusters: {game.GetClusters().Count}; Valid moves: {game.GetValidMoves().Count}");
         }
 
-        private static void RenderGem(GemKind kind, GemPower power, Position position, List<Move> validMoves)
+        private void RenderGem(GemKind kind, GemPower power, Position position, List<Move> validMoves)
         {
-            // Prepare
-            ConsoleColor oldForeground = Console.ForegroundColor;
-            ConsoleColor oldBackground = Console.BackgroundColor;
-
             // Set colors
             Console.ForegroundColor = GemColors[kind];
-            Console.BackgroundColor = validMoves.Any(move => move.Start == position || move.End == position) ? ConsoleColor.DarkGray : ConsoleColor.Black;
+            Console.BackgroundColor = HighlightValidMoves && validMoves.Any(move => move.Start == position || move.End == position) ?
+                ConsoleColor.DarkGray : defaultBackgroundColor;
+            Console.BackgroundColor = HighlightCustomMove && HighlightedMove.HasValue &&
+                (HighlightedMove.Value.Start == position || HighlightedMove.Value.End == position) ?
+                ConsoleColor.DarkGray : Console.BackgroundColor;
 
             // Write
             Console.Write(kind == GemKind.None ? NoneSymbol : GemSymbols[power]);
 
             // Restore
-            Console.ForegroundColor = oldForeground;
-            Console.BackgroundColor = oldBackground;
+            bool isInMiddleOfMove = false;
+            if (HighlightValidMoves)
+            {
+                foreach (Move move in validMoves)
+                {
+                    // Determine if we're in the middle of a move
+                    if ((move.Start == position && move.End == new Position(position.x + 1, position.y)) ||
+                        (move.End == position && move.Start == new Position(position.x + 1, position.y)))
+                    {
+                        isInMiddleOfMove = true;
+                        break;
+                    }
+                }
+            }
+            else if (HighlightCustomMove && HighlightedMove.HasValue &&
+                ((HighlightedMove.Value.Start == position && HighlightedMove.Value.End == new Position(position.x + 1, position.y)) ||
+                (HighlightedMove.Value.End == position && HighlightedMove.Value.Start == new Position(position.x + 1, position.y))))
+            {
+                isInMiddleOfMove = true;
+            }
+            Console.ForegroundColor = defaultForegroundColor;
+            Console.BackgroundColor = isInMiddleOfMove ? Console.BackgroundColor : defaultBackgroundColor;
         }
     }
 }

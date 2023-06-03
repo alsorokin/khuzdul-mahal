@@ -8,8 +8,8 @@ namespace DepthsTest
         {
             Game game = new();
 
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() => game.GetGemKindAt(Game.FieldWidth, 0), "Should throw ArgumentOutOfRangeException when x is too large.");
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() => game.GetGemKindAt(0, Game.FieldHeight), "Should throw ArgumentOutOfRangeException when y is too large.");
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() => game.Field.GetGemKindAt(Field.Width, 0), "Should throw ArgumentOutOfRangeException when x is too large.");
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() => game.Field.GetGemKindAt(0, Field.Height), "Should throw ArgumentOutOfRangeException when y is too large.");
         }
 
         /// <summary>
@@ -21,14 +21,14 @@ namespace DepthsTest
             Gems.SetSeed(12345);
             Game game = new();
 
-            Assert.AreEqual(GemKind.Amber, game.GetGemKindAt(0, 0));
-            Assert.AreEqual(GemKind.Amethyst, game.GetGemKindAt(1, 0));
-            Assert.AreEqual(GemKind.Amethyst, game.GetGemKindAt(2, 0));
-            Assert.AreEqual(GemKind.Ruby, game.GetGemKindAt(3, 0));
-            Assert.AreEqual(GemKind.Emerald, game.GetGemKindAt(4, 0));
-            Assert.AreEqual(GemKind.Ruby, game.GetGemKindAt(5, 0));
-            Assert.AreEqual(GemKind.Amethyst, game.GetGemKindAt(6, 0));
-            Assert.AreEqual(GemKind.Ruby, game.GetGemKindAt(7, 0));
+            Assert.AreEqual(GemKind.Amber, game.Field.GetGemKindAt(0, 0));
+            Assert.AreEqual(GemKind.Amethyst, game.Field.GetGemKindAt(1, 0));
+            Assert.AreEqual(GemKind.Amethyst, game.Field.GetGemKindAt(2, 0));
+            Assert.AreEqual(GemKind.Ruby, game.Field.GetGemKindAt(3, 0));
+            Assert.AreEqual(GemKind.Emerald, game.Field.GetGemKindAt(4, 0));
+            Assert.AreEqual(GemKind.Ruby, game.Field.GetGemKindAt(5, 0));
+            Assert.AreEqual(GemKind.Amethyst, game.Field.GetGemKindAt(6, 0));
+            Assert.AreEqual(GemKind.Ruby, game.Field.GetGemKindAt(7, 0));
         }
 
         /// <summary>

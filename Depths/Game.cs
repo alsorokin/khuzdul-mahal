@@ -8,10 +8,7 @@
     /// </summary>
     public class Game
     {
-        public const int FieldWidth = 8;
-        public const int FieldHeight = 8;
-        private readonly GemKind[,] gemKinds = new GemKind[FieldWidth, FieldHeight];
-        private readonly GemPower[,] gemPowers = new GemPower[FieldWidth, FieldHeight];
+        public Field Field { get; } = new();
         private Move? currentMove = null;
         private Move? lastMove = null;
         private long gameTick = 0;
@@ -21,59 +18,15 @@
         public long Score { get; private set; }
         public long Tick => gameTick;
 
-        /// <summary>
-        /// Retrieves the type of gem at the specified position in the game field.
-        /// </summary>
-        /// <param name="x">The x-coordinate of the gem position.</param>
-        /// <param name="y">The y-coordinate of the gem position.</param>
-        /// <returns>The type (<see cref="GemKind"/>) of the gem at the specified position.</returns>
-        public GemKind GetGemKindAt(int x, int y)
-        {
-            VerifyXYBounds(x, y);
-            return gemKinds[x, y];
-        }
-
-        /// <summary>
-        /// Retrieves the type of gem at the specified position in the game field.
-        /// </summary>
-        /// <param name="position">The position of the gem.</param>
-        /// <returns>The type (<see cref="GemKind"/>) of the gem at the specified position.</returns>
-        public GemKind GetGemKindAt(Position position)
-        {
-            return GetGemKindAt(position.x, position.y);
-        }
-
-        /// <summary>
-        /// Retrieves the power of the gem at the specified position in the game field.
-        /// </summary>
-        /// <param name="x">The x-coordinate of the gem position.</param>
-        /// <param name="y">The y-coordinate of the gem position.</param>
-        /// <returns>The power (<see cref="GemPower"/>) of the gem at the specified position.</returns>
-        public GemPower GetGemPowerAt(int x, int y)
-        {
-            VerifyXYBounds(x, y);
-            return gemPowers[x, y];
-        }
-
-        /// <summary>
-        /// Retrieves the power of the gem at the specified position in the game field.
-        /// </summary>
-        /// <param name="position">The position of the gem.</param>
-        /// <returns>The power (<see cref="GemPower"/>) of the gem at the specified position.</returns>
-        public GemPower GetGemPowerAt(Position position)
-        {
-            return GetGemPowerAt(position.x, position.y);
-        }
-
         public Game()
         {
             // Fill the field with random gems
             // No checks for pre-existing matches yet
-            for (int x = 0; x < FieldWidth; x++)
+            for (int x = 0; x < Field.Width; x++)
             {
-                for (int y = 0; y < FieldHeight; y++)
+                for (int y = 0; y < Field.Height; y++)
                 {
-                    gemKinds[x, y] = Gems.GetRandomGemKind();
+                    Field.SetGemKindAt(x, y, Gems.GetRandomGemKind());
                 }
             }
         }
@@ -94,7 +47,7 @@
         private bool IsMoveValid(Move move)
         {
             // Move constructor already checks for bounds, only check for empty cell and that the move is resultant in a cluster
-            if (gemKinds[move.Start.x, move.Start.y] == GemKind.None || gemKinds[move.End.x, move.End.y] == GemKind.None)
+            if (Field.GetGemKindAt(move.Start) == GemKind.None || Field.GetGemKindAt(move.End) == GemKind.None)
             {
                 // Can't move from or to an empty cell
                 return false;
@@ -161,12 +114,12 @@
                 return cachedClusters.Item2;
             }
 
-            bool[,] horizontalLines = new bool[FieldWidth, FieldHeight];
-            bool[,] verticalLines = new bool[FieldWidth, FieldHeight];
+            bool[,] horizontalLines = new bool[Field.Width, Field.Height];
+            bool[,] verticalLines = new bool[Field.Width, Field.Height];
 
-            for (int x = 0; x < FieldWidth; x++)
+            for (int x = 0; x < Field.Width; x++)
             {
-                for (int y = 0; y < FieldHeight; y++)
+                for (int y = 0; y < Field.Height; y++)
                 {
                     List<Position> horizontalLine = FindLine(x, y, 1, 0);
                     foreach (Position point in horizontalLine)
@@ -183,17 +136,17 @@
             }
 
             List<GemCluster> clusters = new();
-            bool[,] visited = new bool[FieldWidth, FieldHeight];
+            bool[,] visited = new bool[Field.Width, Field.Height];
 
-            for (int x = 0; x < FieldWidth; x++)
+            for (int x = 0; x < Field.Width; x++)
             {
-                for (int y = 0; y < FieldHeight; y++)
+                for (int y = 0; y < Field.Height; y++)
                 {
                     if (!visited[x, y] && (horizontalLines[x, y] || verticalLines[x, y]))
                     {
                         // Find all gems in this cluster
                         List<Position> clusterPoints = new();
-                        Dfs(x, y, visited, clusterPoints, gemKinds[x, y], horizontalLines, verticalLines);
+                        Dfs(x, y, visited, clusterPoints, Field.GetGemKindAt(x, y), horizontalLines, verticalLines);
 
                         if (clusterPoints.Count >= 3)
                         {
@@ -254,16 +207,20 @@
             List<GemCluster> clusters = GetClusters();
             // If there are clusters formed already, no moves are possible until the clusters are collected
             if (clusters.Count > 0)
+            {
                 return cachedMoves.Item2;
+            }
             // If there are empty cells, no moves are possible until they are filled
-            if (gemKinds.Cast<GemKind>().Any((kind) => kind == GemKind.None))
+            if (Field.HasEmptyCells)
+            {
                 return cachedMoves.Item2;
+            }
 
             // Temporarily swap gems, then call GetClusters to see if any clusters are formed
             // If so, then this move is possible
-            for (int x = 0; x < FieldWidth; x++)
+            for (int x = 0; x < Field.Width; x++)
             {
-                for (int y = 0; y < FieldHeight; y++)
+                for (int y = 0; y < Field.Height; y++)
                 {
                     List<Move> potentialMoves = new()
                     {
@@ -275,16 +232,17 @@
                     {
                         int newX = move.Start.x + move.DX;
                         int newY = move.Start.y + move.DY;
-                        if (newX < 0 || newX >= FieldWidth || newY < 0 || newY >= FieldHeight)
+                        if (newX < 0 || newX >= Field.Width || newY < 0 || newY >= Field.Height)
+                        {
                             continue; // Skip invalid moves
+                        }
 
-                        // Swap gems
-                        SwapGems(new Position(newX, newY), new Position(x, y));
+                        Field.SwapGems(new Position(newX, newY), new Position(x, y));
                         if (GetClusters(true).Count > 0)
+                        {
                             cachedMoves.Item2.Add(move); // This move leads to at least one cluster
-
-                        // Swap back
-                        SwapGems(new Position(newX, newY), new Position(x, y));
+                        }
+                        Field.SwapGems(new Position(newX, newY), new Position(x, y));
                     }
                 }
             }
@@ -292,44 +250,40 @@
             return cachedMoves.Item2;
         }
 
-        private void SwapGems(Position pos1, Position pos2)
-        {
-            (gemKinds[pos2.x, pos2.y], gemKinds[pos1.x, pos1.y]) = (gemKinds[pos1.x, pos1.y], gemKinds[pos2.x, pos2.y]);
-            (gemPowers[pos2.x, pos2.y], gemPowers[pos1.x, pos1.y]) = (gemPowers[pos1.x, pos1.y], gemPowers[pos2.x, pos2.y]);
-        }
-
         private bool Fall()
         {
             bool fell = false;
             // Fill empty space
-            for (int x = FieldWidth - 1; x >= 0; x--)
+            for (int x = Field.Width - 1; x >= 0; x--)
             {
-                for (int y = FieldHeight - 1; y >= 0; y--)
+                for (int y = Field.Height - 1; y >= 0; y--)
                 {
-                    if (gemKinds[x, y] == GemKind.None)
+                    if (Field.GetGemKindAt(x, y) == GemKind.None)
                     {
                         fell = true;
                         // Go from bottom to top, swapping any non-empty cells with last known empty one
                         int lastEmptyY = y;
                         for (int yy = y - 1; yy >= 0; yy--)
                         {
-                            if (gemKinds[x, yy] == GemKind.None)
+                            GemKind kind = Field.GetGemKindAt(x, yy);
+                            GemPower power = Field.GetGemPowerAt(x, yy);
+                            if (kind == GemKind.None)
                             {
                                 continue;
                             }
                             else
                             {
-                                gemKinds[x, lastEmptyY] = gemKinds[x, yy];
-                                gemPowers[x, lastEmptyY] = gemPowers[x, yy];
-                                gemKinds[x, yy] = GemKind.None;
-                                gemPowers[x, yy] = GemPower.Normal;
+                                Field.SetGemKindAt(x, lastEmptyY, kind);
+                                Field.SetGemPowerAt(x, lastEmptyY, power);
+                                Field.SetGemKindAt(x, yy, GemKind.None);
+                                Field.SetGemPowerAt(x, yy, GemPower.Normal);
                                 lastEmptyY--;
                             }
                         }
                         // Fill all empty space that's left with random gems
                         for (int yy = 0; yy <= lastEmptyY; yy++)
                         {
-                            gemKinds[x, yy] = Gems.GetRandomGemKind();
+                            Field.SetGemKindAt(x, yy, Gems.GetRandomGemKind());
                         }
                         // Since all work is done in one go, skip checking the remainder of the column
                         break;
@@ -343,14 +297,14 @@
         {
             foreach (GemCluster cluster in clusters)
             {
-                GemKind clusterGemKind = gemKinds[cluster.GemPositions.First().x, cluster.GemPositions.First().y];
+                GemKind clusterGemKind = Field.GetGemKindAt(cluster.GemPositions.First());
                 Debug.Assert(clusterGemKind != GemKind.None, "Cluster gem kind must not be None");
                 Debug.Assert(cluster.GemPositions.Count > 2, "Cluster must have at least three gems in it");
 
                 Score += cluster.WorthBonus;
                 foreach (Position gem in cluster.GemPositions)
                 {
-                    CollectGem(gem.x, gem.y, gemKinds[cluster.GemPositions.First().x, cluster.GemPositions.First().y]);
+                    CollectGem(gem.x, gem.y, Field.GetGemKindAt(cluster.GemPositions.First()));
                 }
 
                 // Create new power gems for non-simple clusters
@@ -364,8 +318,8 @@
                     cluster.GemPositions.FirstOrDefault(p => p == lastMove?.Start || p == lastMove?.End) :
                     cluster.GemPositions[(int)Math.Round((float)cluster.GemPositions.Count / 2.0, MidpointRounding.ToPositiveInfinity)];
 
-                gemKinds[gemSpawnPoint.x, gemSpawnPoint.y] = cluster.ClusterType == ClusterType.Hyper ? GemKind.Hypercube : clusterGemKind;
-                gemPowers[gemSpawnPoint.x, gemSpawnPoint.y] = cluster.ClusterType switch
+                Field.SetGemKindAt(gemSpawnPoint, cluster.ClusterType == ClusterType.Hyper ? GemKind.Hypercube : clusterGemKind);
+                Field.SetGemPowerAt(gemSpawnPoint, cluster.ClusterType switch
                 {
                     ClusterType.Four => GemPower.Fire,
                     ClusterType.L => GemPower.Star, // TODO: Gem should spawn at the intersection
@@ -373,19 +327,23 @@
                     ClusterType.Hyper => GemPower.Hypercube,
                     ClusterType.Supernova => GemPower.Supernova,
                     _ => throw new Exception("Invalid cluster type")
-                };
+                });
             }
         }
 
         private void CollectGem(int x, int y, GemKind kind)
         {
-            GemKind thisGemKind = gemKinds[x, y];
+            if (Field.GetGemKindAt(x, y) == GemKind.None)
+            {
+                return;
+            }
+            GemKind thisGemKind = Field.GetGemKindAt(x, y);
             // Collect the gem
-            gemKinds[x, y] = GemKind.None;
+            Field.SetGemKindAt(x, y, GemKind.None);
             Score += Gems.GemWorth;
 
             // If the gem had a power, activate it
-            switch (gemPowers[x, y])
+            switch (Field.GetGemPowerAt(x, y))
             {
                 case GemPower.Fire:
                     // handle fire power: 3x3 explosion
@@ -393,34 +351,30 @@
                     {
                         for (int yy = y - 1; yy <= y + 1; yy++)
                         {
-                            if (xx < 0 || xx >= FieldWidth || yy < 0 || yy >= FieldHeight)
+                            if (xx < 0 || xx >= Field.Width || yy < 0 || yy >= Field.Height)
                                 continue;
-                            if (gemKinds[xx, yy] != GemKind.None)
-                                CollectGem(xx, yy, thisGemKind);
+                            CollectGem(xx, yy, thisGemKind);
                         }
                     }
                     break;
                 case GemPower.Star:
-                    // handle star power: collect all gems in three vertical and three horizontal lines
-                    for (int xx = x - 1; xx <= x + 1; xx++)
+                    // handle star power: collect all gems in one vertical and one horizontal line
+                    for (int xx = 0; xx < Field.Width; xx++)
                     {
-                        for (int yy = y - 1; yy <= y + 1; yy++)
-                        {
-                            if (xx < 0 || xx >= FieldWidth || yy < 0 || yy >= FieldHeight)
-                                continue;
-                            if (gemKinds[xx, yy] != GemKind.None)
-                                CollectGem(xx, yy, thisGemKind);
-                        }
+                        CollectGem(xx, y, thisGemKind);
+                    }
+                    for (int yy = 0; yy < Field.Height; yy++)
+                    {
+                        CollectGem(x, yy, thisGemKind);
                     }
                     break;
                 case GemPower.Hypercube:
                     // handle hypercube power: collect all gems of the same kind
-                    for (int xx = 0; xx < FieldWidth; xx++)
+                    for (int xx = 0; xx < Field.Width; xx++)
                     {
-                        for (int yy = 0; yy < FieldHeight; yy++)
+                        for (int yy = 0; yy < Field.Height; yy++)
                         {
-                            if (gemKinds[xx, yy] == kind)
-                                CollectGem(xx, yy, kind);
+                            CollectGem(xx, yy, kind);
                         }
                     }
                     break;
@@ -428,36 +382,40 @@
                     // handle supernova power: collect all gems in three horizontal and three vertical lines
                     for (int xx = x - 1; xx <= x + 1; xx++)
                     {
-                        for (int yy = y - 1; yy <= y + 1; yy++)
+                        for (int yy = 0; yy < Field.Height; yy++)
                         {
-                            if (xx < 0 || xx >= FieldWidth || yy < 0 || yy >= FieldHeight)
-                                continue;
-                            if (gemKinds[xx, yy] != GemKind.None)
-                                CollectGem(xx, yy, thisGemKind);
+                            CollectGem(xx, yy, thisGemKind);
+                        }
+                    }
+                    for (int yy = y - 1; yy <= y + 1; yy++)
+                    {
+                        for (int xx = 0; xx < Field.Width; xx++)
+                        {
+                            CollectGem(xx, yy, thisGemKind);
                         }
                     }
                     break;
                 default:
                     break;
             }
-            gemPowers[x, y] = GemPower.Normal;
+            Field.SetGemPowerAt(x, y, GemPower.Normal);
         }
 
         private void ExecuteCurrentMove()
         {
             Debug.Assert(currentMove.HasValue, "There must be a current move to execute");
             // TODO: Handle hypercube and double hypercube
-            SwapGems(currentMove.Value.Start, currentMove.Value.End);
+            Field.SwapGems(currentMove.Value.Start, currentMove.Value.End);
             lastMove = currentMove;
             currentMove = null;
         }
 
         private void Dfs(int x, int y, bool[,] visited, List<Position> cluster, GemKind kind, bool[,] horizontalLines, bool[,] verticalLines)
         {
-            if (x < 0 || x >= FieldWidth || y < 0 || y >= FieldHeight)
+            if (x < 0 || x >= Field.Width || y < 0 || y >= Field.Height)
                 return; // Out of bounds
 
-            if (visited[x, y] || gemKinds[x, y] != kind)
+            if (visited[x, y] || Field.GetGemKindAt(x, y) != kind)
                 return; // Either already visited or not the right kind
 
             visited[x, y] = true; // Mark as visited
@@ -466,29 +424,23 @@
             // Visit all neighbors in a line of matched gems
             if (x > 0 && horizontalLines[x - 1, y])
                 Dfs(x - 1, y, visited, cluster, kind, horizontalLines, verticalLines); // Left
-            if (x < FieldWidth - 1 && horizontalLines[x, y])
+            if (x < Field.Width - 1 && horizontalLines[x, y])
                 Dfs(x + 1, y, visited, cluster, kind, horizontalLines, verticalLines); // Right
             if (y > 0 && verticalLines[x, y - 1])
                 Dfs(x, y - 1, visited, cluster, kind, horizontalLines, verticalLines); // Up
-            if (y < FieldHeight - 1 && verticalLines[x, y])
+            if (y < Field.Height - 1 && verticalLines[x, y])
                 Dfs(x, y + 1, visited, cluster, kind, horizontalLines, verticalLines); // Down
-        }
-
-        private static void VerifyXYBounds(int x, int y)
-        {
-            Debug.Assert(x >= 0 && x < FieldWidth, "x should be in bounds of game field.");
-            Debug.Assert(y >= 0 && y < FieldHeight, "y should be in bounds of game field.");
         }
 
         private List<Position> FindLine(int x, int y, int dx, int dy)
         {
             List<Position> line = new();
-            GemKind kind = gemKinds[x, y];
+            GemKind kind = Field.GetGemKindAt(x, y);
             // Hypercubes and non-gems don't form lines
             if (kind == GemKind.None || kind == GemKind.Hypercube)
                 return line;
 
-            while (x >= 0 && x < FieldWidth && y >= 0 && y < FieldHeight && gemKinds[x, y] == kind)
+            while (x >= 0 && x < Field.Width && y >= 0 && y < Field.Height && Field.GetGemKindAt(x, y) == kind)
             {
                 line.Add(new Position(x, y));
                 x += dx;
