@@ -48,13 +48,13 @@ namespace DepthsTest
 
             Assert.AreEqual(4, clusters.Count);
             Assert.AreEqual(ClusterType.Simple, clusters[0].ClusterType);
-            Assert.AreEqual(3, clusters[0].Gems.Count);
+            Assert.AreEqual(3, clusters[0].GemPositions.Count);
             Assert.AreEqual(ClusterType.Four, clusters[1].ClusterType);
-            Assert.AreEqual(4, clusters[1].Gems.Count);
+            Assert.AreEqual(4, clusters[1].GemPositions.Count);
             Assert.AreEqual(ClusterType.LargeL, clusters[2].ClusterType);
-            Assert.AreEqual(6, clusters[2].Gems.Count);
+            Assert.AreEqual(6, clusters[2].GemPositions.Count);
             Assert.AreEqual(ClusterType.Supernova, clusters[3].ClusterType);
-            Assert.AreEqual(6, clusters[3].Gems.Count);
+            Assert.AreEqual(6, clusters[3].GemPositions.Count);
         }
 
         /// <summary>
@@ -70,7 +70,7 @@ namespace DepthsTest
 
             Assert.AreEqual(5, clusters.Count);
             Assert.AreEqual(ClusterType.Hyper, clusters[2].ClusterType);
-            Assert.AreEqual(5, clusters[2].Gems.Count);
+            Assert.AreEqual(5, clusters[2].GemPositions.Count);
         }
 
 
@@ -86,7 +86,7 @@ namespace DepthsTest
             List<GemCluster> clusters = game.GetClusters();
             Assert.AreEqual(3, clusters.Count);
             Assert.AreEqual(ClusterType.L, clusters[0].ClusterType);
-            Assert.AreEqual(5, clusters[0].Gems.Count);
+            Assert.AreEqual(5, clusters[0].GemPositions.Count);
         }
 
         /// <summary>

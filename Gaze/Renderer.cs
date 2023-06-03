@@ -24,6 +24,7 @@ namespace Gaze
         private static readonly ReadOnlyDictionary<GemKind, ConsoleColor> GemColors = new(new Dictionary<GemKind, ConsoleColor>
         {
             { GemKind.None,      ConsoleColor.Gray        },
+            { GemKind.Hypercube, ConsoleColor.Gray        },
             { GemKind.Amber,     ConsoleColor.DarkYellow  },
             { GemKind.Amethyst,  ConsoleColor.Magenta     },
             { GemKind.Diamond,   ConsoleColor.White       },

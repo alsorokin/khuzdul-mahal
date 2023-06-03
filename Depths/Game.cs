@@ -1,6 +1,7 @@
 ﻿namespace Depths
 {
     using System.Collections.Generic;
+    using System.Diagnostics;
 
     /// <summary>
     /// Main game logic
@@ -12,6 +13,7 @@
         private readonly GemKind[,] gemKinds = new GemKind[FieldWidth, FieldHeight];
         private readonly GemPower[,] gemPowers = new GemPower[FieldWidth, FieldHeight];
         private Move? currentMove = null;
+        private Move? lastMove = null;
         private long gameTick = 0;
         private (long, List<GemCluster>) cachedClusters = (-1, new());
         private (long, List<Move>) cachedMoves = (-1, new());
@@ -135,8 +137,7 @@
             // Execute outstanding move
             if (currentMove != null)
             {
-                SwapGems(currentMove.Value.Start, currentMove.Value.End);
-                currentMove = null;
+                ExecuteCurrentMove();
                 gameTick++;
                 return;
             }
@@ -219,7 +220,7 @@
                             else if ((width == 3 && height == 1) || (width == 1 && height == 3))
                                 type = ClusterType.Simple;
 
-                            GemCluster cluster = new() { Gems = clusterPoints, ClusterType = type };
+                            GemCluster cluster = new() { GemPositions = clusterPoints, ClusterType = type };
                             clusters.Add(cluster);
                         }
                     }
@@ -294,6 +295,7 @@
         private void SwapGems(Position pos1, Position pos2)
         {
             (gemKinds[pos2.x, pos2.y], gemKinds[pos1.x, pos1.y]) = (gemKinds[pos1.x, pos1.y], gemKinds[pos2.x, pos2.y]);
+            (gemPowers[pos2.x, pos2.y], gemPowers[pos1.x, pos1.y]) = (gemPowers[pos1.x, pos1.y], gemPowers[pos2.x, pos2.y]);
         }
 
         private bool Fall()
@@ -341,12 +343,37 @@
         {
             foreach (GemCluster cluster in clusters)
             {
+                GemKind clusterGemKind = gemKinds[cluster.GemPositions.First().x, cluster.GemPositions.First().y];
+                Debug.Assert(clusterGemKind != GemKind.None, "Cluster gem kind must not be None");
+                Debug.Assert(cluster.GemPositions.Count > 2, "Cluster must have at least three gems in it");
+
                 Score += cluster.WorthBonus;
-                foreach (Position gem in cluster.Gems)
+                foreach (Position gem in cluster.GemPositions)
                 {
-                    CollectGem(gem.x, gem.y, gemKinds[cluster.Gems.First().x, cluster.Gems.First().y]);
+                    CollectGem(gem.x, gem.y, gemKinds[cluster.GemPositions.First().x, cluster.GemPositions.First().y]);
                 }
-                // TODO: Create new power gems for non-simple clusters
+
+                // Create new power gems for non-simple clusters
+                // If the cluster is a part of a move, spawn the power gem at the start or end of the move
+                // Otherwise, spawn it in the middle of the cluster
+                if (cluster.ClusterType == ClusterType.Simple)
+                {
+                    continue;
+                }
+                Position gemSpawnPoint = cluster.GemPositions.Any(p => p == lastMove?.Start || p == lastMove?.End) ?
+                    cluster.GemPositions.FirstOrDefault(p => p == lastMove?.Start || p == lastMove?.End) :
+                    cluster.GemPositions[(int)Math.Round((float)cluster.GemPositions.Count / 2.0, MidpointRounding.ToPositiveInfinity)];
+
+                gemKinds[gemSpawnPoint.x, gemSpawnPoint.y] = cluster.ClusterType == ClusterType.Hyper ? GemKind.Hypercube : clusterGemKind;
+                gemPowers[gemSpawnPoint.x, gemSpawnPoint.y] = cluster.ClusterType switch
+                {
+                    ClusterType.Four => GemPower.Fire,
+                    ClusterType.L => GemPower.Star, // TODO: Gem should spawn at the intersection
+                    ClusterType.LargeL => GemPower.Star, // TODO: This should spawn a star gem and a fire gem
+                    ClusterType.Hyper => GemPower.Hypercube,
+                    ClusterType.Supernova => GemPower.Supernova,
+                    _ => throw new Exception("Invalid cluster type")
+                };
             }
         }
 
@@ -374,11 +401,13 @@
                     }
                     break;
                 case GemPower.Star:
-                    // handle star power: collect all gems horizontally and vertically
-                    for (int xx = 0; xx < FieldWidth; xx++)
+                    // handle star power: collect all gems in three vertical and three horizontal lines
+                    for (int xx = x - 1; xx <= x + 1; xx++)
                     {
-                        for (int yy = 0; yy < FieldHeight; yy++)
+                        for (int yy = y - 1; yy <= y + 1; yy++)
                         {
+                            if (xx < 0 || xx >= FieldWidth || yy < 0 || yy >= FieldHeight)
+                                continue;
                             if (gemKinds[xx, yy] != GemKind.None)
                                 CollectGem(xx, yy, thisGemKind);
                         }
@@ -386,7 +415,6 @@
                     break;
                 case GemPower.Hypercube:
                     // handle hypercube power: collect all gems of the same kind
-                    // TODO: correctly handle when a hypercube is matched with another hypercube (collect the whole field)
                     for (int xx = 0; xx < FieldWidth; xx++)
                     {
                         for (int yy = 0; yy < FieldHeight; yy++)
@@ -415,6 +443,15 @@
             gemPowers[x, y] = GemPower.Normal;
         }
 
+        private void ExecuteCurrentMove()
+        {
+            Debug.Assert(currentMove.HasValue, "There must be a current move to execute");
+            // TODO: Handle hypercube and double hypercube
+            SwapGems(currentMove.Value.Start, currentMove.Value.End);
+            lastMove = currentMove;
+            currentMove = null;
+        }
+
         private void Dfs(int x, int y, bool[,] visited, List<Position> cluster, GemKind kind, bool[,] horizontalLines, bool[,] verticalLines)
         {
             if (x < 0 || x >= FieldWidth || y < 0 || y >= FieldHeight)
@@ -437,16 +474,10 @@
                 Dfs(x, y + 1, visited, cluster, kind, horizontalLines, verticalLines); // Down
         }
 
-        private void VerifyXYBounds(int x, int y)
+        private static void VerifyXYBounds(int x, int y)
         {
-            if (x < 0 || x >= FieldWidth)
-            {
-                throw new ArgumentOutOfRangeException(nameof(x), $"x should be in range of 0-{FieldWidth - 1}");
-            }
-            if (y < 0 || y >= FieldHeight)
-            {
-                throw new ArgumentOutOfRangeException(nameof(y), $"y should be in range of 0-{FieldHeight - 1}");
-            }
+            Debug.Assert(x >= 0 && x < FieldWidth, "x should be in bounds of game field.");
+            Debug.Assert(y >= 0 && y < FieldHeight, "y should be in bounds of game field.");
         }
 
         private List<Position> FindLine(int x, int y, int dx, int dy)
