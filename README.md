@@ -10,3 +10,5 @@ Don't mind the name. This should mean something like "dwarven maker" in Khuzdul,
 
 ## How to launch
 You can gaze at some random moves being made, right in your console. Just run the Gaze project and press Enter to advance the game by one tick. There is no UI currently implemented or planned.
+
+![image](https://github.com/alsorokin/khuzdul-mahal/assets/10210197/b642736c-e820-4d14-bf56-9c1830371d3a)
