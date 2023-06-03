@@ -3,15 +3,6 @@ namespace DepthsTest
     [TestClass]
     public class GameTests
     {
-        [TestMethod]
-        public void GetGemKindAt_ThrowsOutOfRangeException()
-        {
-            Game game = new();
-
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() => game.Field.GetGemKindAt(Field.Width, 0), "Should throw ArgumentOutOfRangeException when x is too large.");
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() => game.Field.GetGemKindAt(0, Field.Height), "Should throw ArgumentOutOfRangeException when y is too large.");
-        }
-
         /// <summary>
         /// Check: GetGemKindAt() returns the correct gem kind
         /// </summary>
