@@ -60,7 +60,8 @@ namespace Gaze
                 }
                 Console.WriteLine();
             }
-            Console.WriteLine($"Score: {game.Score}; Tick: {game.Tick}; Clusters: {game.GetClusters().Count}; Valid moves: {game.GetValidMoves().Count}");
+            Console.WriteLine($"Score: {game.Score}; Combo: {game.Combo}; Clusters: {game.GetClusters().Count};");
+            Console.WriteLine($"Tick:{game.Tick}; Valid moves: {game.GetValidMoves().Count}");
         }
 
         private void RenderGem(GemKind kind, GemPower power, Position position, List<Move> validMoves)

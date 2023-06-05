@@ -11,12 +11,12 @@
         public Field Field { get; } = new();
         private Move? currentMove = null;
         private Move? lastMove = null;
-        private long gameTick = 0;
         private (long, List<GemCluster>) cachedClusters = (-1, new());
         private (long, List<Move>) cachedMoves = (-1, new());
 
-        public long Score { get; private set; }
-        public long Tick => gameTick;
+        public long Score { get; private set; } = 0;
+        public long Tick { get; private set; } = 0;
+        public int Combo { get; private set; } = 0;
 
         public Game()
         {
@@ -72,7 +72,7 @@
             bool gemsFell = Fall();
             if (gemsFell)
             {
-                gameTick++;
+                Tick++;
                 return;
             }
 
@@ -83,7 +83,7 @@
             // This way we can reuse cached clusters and moves when nothing happens
             if (clusters.Count > 0)
             {
-                gameTick++;
+                Tick++;
                 return;
             }
 
@@ -91,7 +91,7 @@
             if (currentMove != null)
             {
                 ExecuteCurrentMove();
-                gameTick++;
+                Tick++;
                 return;
             }
         }
@@ -109,7 +109,7 @@
         public List<GemCluster> GetClusters(bool forceRecalculation = false)
         {
             // Return cached clusters if possible
-            if (cachedClusters.Item1 == gameTick && !forceRecalculation)
+            if (cachedClusters.Item1 == Tick && !forceRecalculation)
             {
                 return cachedClusters.Item2;
             }
@@ -182,7 +182,7 @@
 
             if (!forceRecalculation)
             {
-                cachedClusters = (gameTick, clusters);
+                cachedClusters = (Tick, clusters);
             }
             return clusters;
         }
@@ -198,12 +198,12 @@
         public List<Move> GetValidMoves()
         {
             // Retirn cached moves if possible
-            if (cachedMoves.Item1 == gameTick)
+            if (cachedMoves.Item1 == Tick)
             {
                 return cachedMoves.Item2;
             }
 
-            cachedMoves = (gameTick, new());
+            cachedMoves = (Tick, new());
             List<GemCluster> clusters = GetClusters();
             // If there are clusters formed already, no moves are possible until the clusters are collected
             if (clusters.Count > 0)
@@ -301,7 +301,8 @@
                 Debug.Assert(clusterGemKind != GemKind.None, "Cluster gem kind must not be None");
                 Debug.Assert(cluster.GemPositions.Count > 2, "Cluster must have at least three gems in it");
 
-                Score += cluster.WorthBonus;
+                Combo++;
+                Score += cluster.WorthBonus * Combo;
                 foreach (Position gem in cluster.GemPositions)
                 {
                     CollectGem(gem.x, gem.y, Field.GetGemKindAt(cluster.GemPositions.First()));
@@ -340,7 +341,7 @@
             GemKind thisGemKind = Field.GetGemKindAt(x, y);
             // Collect the gem
             Field.SetGemKindAt(x, y, GemKind.None);
-            Score += Gems.GemWorth;
+            Score += Gems.GemWorth * Combo;
 
             // If the gem had a power, activate it
             switch (Field.GetGemPowerAt(x, y))
@@ -404,6 +405,7 @@
         private void ExecuteCurrentMove()
         {
             Debug.Assert(currentMove.HasValue, "There must be a current move to execute");
+            Combo = 0;
             // TODO: Handle hypercube and double hypercube
             Field.SwapGems(currentMove.Value.Start, currentMove.Value.End);
             lastMove = currentMove;
