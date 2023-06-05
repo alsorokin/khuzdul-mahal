@@ -26,7 +26,7 @@
         public int DX;
         public int DY;
         public bool Processed;
-        public Position End => new() { x = Start.x + DX, y = Start.y + DY };
+        public Position End => new() { X = Start.X + DX, Y = Start.Y + DY };
 
         public static bool operator ==(Move a, Move b)
         {

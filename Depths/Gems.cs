@@ -13,18 +13,18 @@
 
     public struct Position
     {
-        public int x;
-        public int y;
+        public int X;
+        public int Y;
 
         public Position(int x, int y)
         {
-            this.x = x;
-            this.y = y;
+            this.X = x;
+            this.Y = y;
         }
 
         public static bool operator ==(Position a, Position b)
         {
-            return a.x == b.x && a.y == b.y;
+            return a.X == b.X && a.Y == b.Y;
         }
 
         public static bool operator !=(Position a, Position b)
@@ -32,14 +32,14 @@
             return !(a == b);
         }
 
-        public override bool Equals(object? obj)
+        public override readonly bool Equals(object? obj)
         {
             return obj is Position position && this == position;
         }
 
-        public override int GetHashCode()
+        public override readonly int GetHashCode()
         {
-            return HashCode.Combine(x, y);
+            return HashCode.Combine(X, Y);
         }
     }
 

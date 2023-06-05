@@ -51,9 +51,9 @@ namespace Gaze
         internal void Render(Game game)
         {
             List<Move> validMoves = game.GetValidMoves();
-            for (int y = 0; y < Field.Height; y++)
+            for (int y = 0; y < GameField.Height; y++)
             {
-                for (int x = 0; x < Field.Width; x++)
+                for (int x = 0; x < GameField.Width; x++)
                 {
                     RenderGem(game.Field.GetGemKindAt(x, y), game.Field.GetGemPowerAt(x, y), new Position(x, y), validMoves);
                     Console.Write(' ');
@@ -84,8 +84,8 @@ namespace Gaze
                 foreach (Move move in validMoves)
                 {
                     // Determine if we're in the middle of a move
-                    if ((move.Start == position && move.End == new Position(position.x + 1, position.y)) ||
-                        (move.End == position && move.Start == new Position(position.x + 1, position.y)))
+                    if ((move.Start == position && move.End == new Position(position.X + 1, position.Y)) ||
+                        (move.End == position && move.Start == new Position(position.X + 1, position.Y)))
                     {
                         isInMiddleOfMove = true;
                         break;
@@ -93,8 +93,8 @@ namespace Gaze
                 }
             }
             else if (HighlightCustomMove && HighlightedMove.HasValue &&
-                ((HighlightedMove.Value.Start == position && HighlightedMove.Value.End == new Position(position.x + 1, position.y)) ||
-                (HighlightedMove.Value.End == position && HighlightedMove.Value.Start == new Position(position.x + 1, position.y))))
+                ((HighlightedMove.Value.Start == position && HighlightedMove.Value.End == new Position(position.X + 1, position.Y)) ||
+                (HighlightedMove.Value.End == position && HighlightedMove.Value.Start == new Position(position.X + 1, position.Y))))
             {
                 isInMiddleOfMove = true;
             }

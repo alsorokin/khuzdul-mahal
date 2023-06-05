@@ -4,7 +4,7 @@ using Gaze;
 Random random = new();
 long lastTick;
 
-// Gems.SetSeed(25337);
+Gems.SetSeed(18);
 Game game = new();
 Renderer renderer = new();
 renderer.HighlightCustomMove = true;

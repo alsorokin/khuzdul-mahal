@@ -2,7 +2,7 @@
 
 namespace Depths
 {
-    public class Field
+    public class GameField
     {
         public const int Width = 8;
         public const int Height = 8;
@@ -28,7 +28,7 @@ namespace Depths
         }
 
         public GemKind GetGemKindAt(Position position) =>
-            GetGemKindAt(position.x, position.y);
+            GetGemKindAt(position.X, position.Y);
 
         public GemPower GetGemPowerAt(int x, int y)
         {
@@ -37,10 +37,10 @@ namespace Depths
         }
 
         public GemPower GetGemPowerAt(Position position) =>
-            GetGemPowerAt(position.x, position.y);
+            GetGemPowerAt(position.X, position.Y);
 
         public void SetGemKindAt(Position gemSpawnPoint, GemKind gemKind) =>
-            SetGemKindAt(gemSpawnPoint.x, gemSpawnPoint.y, gemKind);
+            SetGemKindAt(gemSpawnPoint.X, gemSpawnPoint.Y, gemKind);
 
         public void SetGemKindAt(int x, int y, GemKind kind)
         {
@@ -49,7 +49,7 @@ namespace Depths
         }
 
         public void SetGemPowerAt(Position position, GemPower power) =>
-            SetGemPowerAt(position.x, position.y, power);
+            SetGemPowerAt(position.X, position.Y, power);
 
         public void SetGemPowerAt(int x, int y, GemPower power)
         {
@@ -68,8 +68,18 @@ namespace Depths
         {
             VerifyXYBounds(pos1);
             VerifyXYBounds(pos2);
-            (gemKinds[pos2.x, pos2.y], gemKinds[pos1.x, pos1.y]) = (gemKinds[pos1.x, pos1.y], gemKinds[pos2.x, pos2.y]);
-            (gemPowers[pos2.x, pos2.y], gemPowers[pos1.x, pos1.y]) = (gemPowers[pos1.x, pos1.y], gemPowers[pos2.x, pos2.y]);
+            (gemKinds[pos2.X, pos2.Y], gemKinds[pos1.X, pos1.Y]) = (gemKinds[pos1.X, pos1.Y], gemKinds[pos2.X, pos2.Y]);
+            (gemPowers[pos2.X, pos2.Y], gemPowers[pos1.X, pos1.Y]) = (gemPowers[pos1.X, pos1.Y], gemPowers[pos2.X, pos2.Y]);
+        }
+
+        /// <summary>
+        /// Executes action for each gem on the game field.
+        /// </summary>
+        public void ForEachGem(Action<Position, GemKind, GemPower> action)
+        {
+            for (int y = 0; y < Height; y++)
+                for (int x = 0; x < Width; x++)
+                    action(new Position(x, y), gemKinds[x, y], gemPowers[x, y]);
         }
 
         private static void VerifyXYBounds(int x, int y)
@@ -80,7 +90,7 @@ namespace Depths
 
         private static void VerifyXYBounds(Position position)
         {
-            VerifyXYBounds(position.x, position.y);
+            VerifyXYBounds(position.X, position.Y);
         }
     }
 }
