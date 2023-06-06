@@ -1,7 +1,7 @@
 ﻿namespace Depths
 {
+    using States;
     using System.Collections.Generic;
-    using System.Diagnostics;
 
     /// <summary>
     /// Main game logic
@@ -9,14 +9,15 @@
     public class Game
     {
         public GameField Field { get; } = new();
-        private Move? currentMove = null;
-        private Move? lastMove = null;
+        internal Move? currentMove = null;
+        internal Move? lastMove = null;
         private (long, List<GemCluster>) cachedClusters = (-1, new());
         private (long, List<Move>) cachedMoves = (-1, new());
 
-        public long Score { get; private set; } = 0;
-        public long Tick { get; private set; } = 0;
-        public int Combo { get; private set; } = 0;
+        public long Score { get; internal set; } = 0;
+        public long Tick { get; internal set; } = 0;
+        public int Combo { get; internal set; } = 0;
+        public IGameState State { get; internal set; } = GameStates.CollectingClusters;
 
         public Game()
         {
@@ -67,36 +68,7 @@
         /// </summary>
         public void Progress()
         {
-            // Only collect clusters when gems are settled,
-            // This is mainly for Gaze convenience
-            bool gemsFell = Fall();
-            if (gemsFell)
-            {
-                lastMove = null;
-                Tick++;
-                return;
-            }
-
-            // If moved hypercubes, collect them
-            CollectHypercubes();
-            // Find and collect clusters
-            List<GemCluster> clusters = GetClusters();
-            CollectClusters(clusters);
-            // Only increment game tick if clusters were found
-            // This way we can reuse cached clusters and moves when nothing happens
-            if (clusters.Count > 0)
-            {
-                Tick++;
-                return;
-            }
-
-            // Execute outstanding move
-            if (currentMove != null)
-            {
-                ExecuteCurrentMove();
-                Tick++;
-                return;
-            }
+            State.Progress(this);
         }
 
         /// <summary>
@@ -201,25 +173,8 @@
             }
 
             cachedMoves = (Tick, new());
-            // If there is a move in progress, no other moves are possible
-            if (currentMove.HasValue)
-            {
-                return cachedMoves.Item2;
-            }
-            // If a hypercube was moved, no other moves are possible until it is collected
-            else if (lastMove.HasValue && (Field.GetGemKindAt(lastMove.Value.Start) == GemKind.Hypercube ||
-                Field.GetGemKindAt(lastMove.Value.End) == GemKind.Hypercube))
-            {
-                return cachedMoves.Item2;
-            }
-            List<GemCluster> clusters = GetClusters();
-            // If there are clusters formed already, no moves are possible until the clusters are collected
-            if (clusters.Count > 0)
-            {
-                return cachedMoves.Item2;
-            }
-            // If there are empty cells, no moves are possible until they are filled
-            if (Field.HasEmptyCells)
+            // Moves are only possible in idle state
+            if (State != GameStates.Idle)
             {
                 return cachedMoves.Item2;
             }
@@ -277,188 +232,6 @@
             });
 
             return cachedMoves.Item2;
-        }
-
-        private bool Fall()
-        {
-            bool fell = false;
-            // Fill empty space
-            for (int x = GameField.Width - 1; x >= 0; x--)
-            {
-                for (int y = GameField.Height - 1; y >= 0; y--)
-                {
-                    if (Field.GetGemKindAt(x, y) == GemKind.None)
-                    {
-                        fell = true;
-                        // Go from bottom to top, swapping any non-empty cells with last known empty one
-                        int lastEmptyY = y;
-                        for (int yy = y - 1; yy >= 0; yy--)
-                        {
-                            GemKind kind = Field.GetGemKindAt(x, yy);
-                            GemPower power = Field.GetGemPowerAt(x, yy);
-                            if (kind == GemKind.None)
-                            {
-                                continue;
-                            }
-                            else
-                            {
-                                Field.SetGemKindAt(x, lastEmptyY, kind);
-                                Field.SetGemPowerAt(x, lastEmptyY, power);
-                                Field.SetGemKindAt(x, yy, GemKind.None);
-                                Field.SetGemPowerAt(x, yy, GemPower.Normal);
-                                lastEmptyY--;
-                            }
-                        }
-                        // Fill all empty space that's left with random gems
-                        for (int yy = 0; yy <= lastEmptyY; yy++)
-                        {
-                            Field.SetGemKindAt(x, yy, Gems.GetRandomGemKind());
-                        }
-                        // Since all work is done in one go, skip checking the remainder of the column
-                        break;
-                    }
-                }
-            }
-            return fell;
-        }
-
-        private void CollectHypercubes()
-        {
-            if (!lastMove.HasValue)
-            {
-                return;
-            }
-            // If only one end of the last move is a hypercube, collect all gems of the other kind and the hypercube itself
-            // If both are hypercubes, collect all gems of any kind (this is handled in CollectGem)
-            if (Field.GetGemKindAt(lastMove.Value.Start) == GemKind.Hypercube ||
-                Field.GetGemKindAt(lastMove.Value.End) == GemKind.Hypercube)
-            {
-                GemKind otherGemKind = Field.GetGemKindAt(lastMove.Value.Start) == GemKind.Hypercube ?
-                    Field.GetGemKindAt(lastMove.Value.End) : Field.GetGemKindAt(lastMove.Value.Start);
-                CollectGem(lastMove.Value.Start.X, lastMove.Value.Start.Y, otherGemKind);
-                CollectGem(lastMove.Value.End.X, lastMove.Value.End.Y, otherGemKind);
-                Tick++;
-            }
-        }
-
-        private void CollectClusters(List<GemCluster> clusters)
-        {
-            foreach (GemCluster cluster in clusters)
-            {
-                GemKind clusterGemKind = Field.GetGemKindAt(cluster.GemPositions.First());
-                Debug.Assert(clusterGemKind != GemKind.None, "Cluster gem kind must not be None");
-                Debug.Assert(cluster.GemPositions.Count > 2, "Cluster must have at least three gems in it");
-
-                Combo++;
-                Score += cluster.WorthBonus * Combo;
-                foreach (Position gem in cluster.GemPositions)
-                {
-                    CollectGem(gem.X, gem.Y, Field.GetGemKindAt(cluster.GemPositions.First()));
-                }
-
-                // Create new power gems for non-simple clusters
-                // If the cluster is a part of a move, spawn the power gem at the start or end of the move
-                // Otherwise, spawn it in the middle of the cluster
-                if (cluster.ClusterType == ClusterType.Simple)
-                {
-                    continue;
-                }
-                // TODO: Bad logic, refactor
-                Position gemSpawnPoint = cluster.GemPositions.Any(p => p == lastMove?.Start || p == lastMove?.End) ?
-                    cluster.GemPositions.FirstOrDefault(p => p == lastMove?.Start || p == lastMove?.End) :
-                    cluster.GemPositions[(int)Math.Round(cluster.GemPositions.Count / 2f, MidpointRounding.ToPositiveInfinity)];
-
-                Field.SetGemKindAt(gemSpawnPoint, cluster.ClusterType == ClusterType.Hyper ? GemKind.Hypercube : clusterGemKind);
-                Field.SetGemPowerAt(gemSpawnPoint, cluster.ClusterType switch
-                {
-                    ClusterType.Four => GemPower.Fire,
-                    ClusterType.L => GemPower.Star, // TODO: Gem should spawn at the intersection
-                    ClusterType.LargeL => GemPower.Star, // TODO: This should spawn a star gem and a fire gem
-                    ClusterType.Hyper => GemPower.Hypercube,
-                    ClusterType.Supernova => GemPower.Supernova,
-                    _ => throw new Exception("Invalid cluster type")
-                });
-            }
-        }
-
-        private void CollectGem(int x, int y, GemKind otherKind)
-        {
-            if (Field.GetGemKindAt(x, y) == GemKind.None)
-            {
-                return;
-            }
-            GemKind thisKind = Field.GetGemKindAt(x, y);
-            // Collect the gem
-            Field.SetGemKindAt(x, y, GemKind.None);
-            Score += Gems.GemWorth * Combo;
-
-            // If the gem had a power, activate it
-            switch (Field.GetGemPowerAt(x, y))
-            {
-                case GemPower.Fire:
-                    // handle fire power: 3x3 explosion
-                    for (int xx = x - 1; xx <= x + 1; xx++)
-                    {
-                        for (int yy = y - 1; yy <= y + 1; yy++)
-                        {
-                            if (xx < 0 || xx >= GameField.Width || yy < 0 || yy >= GameField.Height)
-                                continue;
-                            CollectGem(xx, yy, thisKind);
-                        }
-                    }
-                    break;
-                case GemPower.Star:
-                    // handle star power: collect all gems in one vertical and one horizontal line
-                    for (int xx = 0; xx < GameField.Width; xx++)
-                    {
-                        CollectGem(xx, y, thisKind);
-                    }
-                    for (int yy = 0; yy < GameField.Height; yy++)
-                    {
-                        CollectGem(x, yy, thisKind);
-                    }
-                    break;
-                case GemPower.Hypercube:
-                    // handle hypercube power: collect all gems of the same kind
-                    // if the other gem is also a hypercube, collect all gems
-                    Field.ForEachGem((pos, k, _) =>
-                    {
-                        if (k == otherKind || otherKind == GemKind.Hypercube)
-                        {
-                            CollectGem(pos.X, pos.Y, otherKind);
-                        }
-                    });
-                    break;
-                case GemPower.Supernova:
-                    // handle supernova power: collect all gems in three horizontal and three vertical lines
-                    for (int xx = x - 1; xx <= x + 1; xx++)
-                    {
-                        for (int yy = 0; yy < GameField.Height; yy++)
-                        {
-                            CollectGem(xx, yy, thisKind);
-                        }
-                    }
-                    for (int yy = y - 1; yy <= y + 1; yy++)
-                    {
-                        for (int xx = 0; xx < GameField.Width; xx++)
-                        {
-                            CollectGem(xx, yy, thisKind);
-                        }
-                    }
-                    break;
-                default:
-                    break;
-            }
-            Field.SetGemPowerAt(x, y, GemPower.Normal);
-        }
-
-        private void ExecuteCurrentMove()
-        {
-            Debug.Assert(currentMove.HasValue, "There must be a current move to execute");
-            Combo = 0;
-            Field.SwapGems(currentMove.Value.Start, currentMove.Value.End);
-            lastMove = currentMove;
-            currentMove = null;
         }
 
         private void Dfs(int x, int y, bool[,] visited, List<Position> cluster, GemKind kind, bool[,] horizontalLines, bool[,] verticalLines)

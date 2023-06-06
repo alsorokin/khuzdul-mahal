@@ -24,9 +24,7 @@ while (Console.ReadLine() != "q")
     game.Progress();
     if (game.Tick == lastTick)
     {
-        Console.WriteLine("No more moves!");
-        continue;
+        // continue;
     }
     renderer.Render(game);
-    Console.WriteLine();
 }
