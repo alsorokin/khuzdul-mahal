@@ -1,15 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <OutputType>Library</OutputType>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Depths\Depths.csproj" />
-    <ProjectReference Include="..\Sanctum\Sanctum.csproj" />
   </ItemGroup>
 
 </Project>
